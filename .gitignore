@@ -1,0 +1,31 @@
+# .NET build output and local project settings
+**/bin/
+**/obj/
+*.user
+*.suo
+
+# IDE state
+.vs/
+.idea/
+
+# Frontend dependencies and generated output
+**/node_modules/
+**/dist/
+**/.angular/
+**/out-tsc/
+**/coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local environment and certificates
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+
+# Operating system files
+.DS_Store
+Thumbs.db

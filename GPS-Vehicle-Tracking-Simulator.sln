@@ -1,0 +1,33 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35222.181
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GpsTracking.Api", "GpsTracking.Api\GpsTracking.Api.csproj", "{B6AA3B7B-6AD7-47DC-9A29-EAFFD505842F}"
+EndProject
+Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "gps-tracking-web", "gps-tracking-web\gps-tracking-web.esproj", "{450DE190-555F-4EB7-85D9-C3B9DE1E5206}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B6AA3B7B-6AD7-47DC-9A29-EAFFD505842F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B6AA3B7B-6AD7-47DC-9A29-EAFFD505842F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B6AA3B7B-6AD7-47DC-9A29-EAFFD505842F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B6AA3B7B-6AD7-47DC-9A29-EAFFD505842F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{450DE190-555F-4EB7-85D9-C3B9DE1E5206}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{450DE190-555F-4EB7-85D9-C3B9DE1E5206}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{450DE190-555F-4EB7-85D9-C3B9DE1E5206}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{450DE190-555F-4EB7-85D9-C3B9DE1E5206}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{450DE190-555F-4EB7-85D9-C3B9DE1E5206}.Release|Any CPU.Build.0 = Release|Any CPU
+		{450DE190-555F-4EB7-85D9-C3B9DE1E5206}.Release|Any CPU.Deploy.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F7F33EA9-E356-482D-8E74-AF150D350D7E}
+	EndGlobalSection
+EndGlobal
