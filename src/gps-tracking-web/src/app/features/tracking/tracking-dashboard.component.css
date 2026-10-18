@@ -1,0 +1,110 @@
+:host {
+  display: block;
+}
+
+.intro {
+  color: #486064;
+  margin-bottom: 1.5rem;
+}
+
+.connection-error {
+  background: #fff0d9;
+  color: #704512;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.map-panel, .vehicle-card {
+  background: #fff;
+  border: 1px solid #d5e0e1;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.map-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+}
+
+h2 {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.map-heading span {
+  font-size: .85rem;
+  color: #486064;
+}
+
+svg {
+  display: block;
+  width: 100%;
+  background: #f1f6f5;
+}
+
+.marker-label {
+  fill: #18353b;
+  font: 16px sans-serif;
+}
+
+.vehicle-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.vehicle-card {
+  padding: 1.25rem;
+  border-top-width: 4px;
+}
+
+.speed {
+  font-size: 2rem;
+  font-weight: 650;
+  margin: 1rem 0;
+}
+
+.speed span {
+  font-size: 1rem;
+  font-weight: 400;
+}
+
+dl {
+  margin-bottom: 0;
+}
+
+dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: .65rem;
+}
+
+dt {
+  color: #486064;
+}
+
+dd {
+  margin: 0;
+  text-align: right;
+}
+
+.waiting {
+  font-weight: 600;
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 640px) {
+  .vehicle-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .map-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

@@ -19,33 +19,28 @@ Do not implement subsequent milestones without a request. Preserve unrelated wor
 | Sampling | No more frequently than every 10 seconds, with rare exceptions allowed. Use 10 seconds by default. |
 | Telemetry | Simulator supplies vehicle ID, coordinates, generation timestamp, speed in km/h and heading from 0 to 360 degrees. |
 | Authority | Supplied speed drives speeding alerts; heading is primarily visual. Do not replace speed with a coordinate-derived value. |
-| Stops | Detect remaining within a small distance, not speed equal to zero. |
-| Speeding | All observations in the qualifying window must exceed the threshold; one alert per continuous episode, rearmed after speeding breaks. Defaults: 80 km/h and 30 seconds. |
-| Segments | Split after a sufficiently long stop, default 180 seconds. Exact boundary remains provisional. A line needs at least two points; current position may be a single point. |
+| Stops | Detect remaining within a globally configurable radius, default 10 metres, not speed equal to zero. |
+| Speeding | Require full elapsed duration with all observations strictly above the threshold: 00, 10, 20 and 30 seconds for a 30-second window. One alert per continuous episode, rearmed after speeding breaks. Defaults: 80 km/h and 30 seconds. |
+| Segments | Split after a sufficiently long stop, default 180 seconds. A stop beginning at 12:00 and confirmed at 12:03 ends the previous route at the 12:00 sample; movement resuming at 12:05 starts the next route at the 12:05 sample. Preserve stationary samples in raw history. A line needs at least two points. |
 | Geofences | Predefined rectangles; observed GPS points only. Evaluator suggested confirmation by two of the latest three positions. No interpolated crossings required. |
 | Time | GPS generation timestamps drive rules. Assume strictly newer timestamps arrive in order. |
-| Settings | Per vehicle, editable live, with immediate reevaluation of retained observations under the new settings. |
+| Settings | Speed limit, speeding duration and stop duration are per vehicle. Stop radius is global. Retain live editing and immediate reevaluation of retained observations. |
 | Example | After 20 seconds of speeding, changing duration from 30 to 15 seconds immediately alerts with the latest GPS timestamp. |
 | UI | Two vehicles, movement and tracking details, history, alerts and configurable thresholds. A simplified visualization is acceptable. |
 | Demo | Reliably demonstrate geofencing, speeding and stops/segmentation. |
+| Architecture | ASP.NET Core, Angular, a separate .NET simulator, HTTP ingestion and SignalR updates are accepted. Component design remains part of the evaluation. |
+| Delivery | Local application is sufficient; external services are permitted but not required. |
+| Persistence | Optional. Docker and LocalDB are acceptable; Docker would require startup instructions. |
+| Simulator outages | Buffering and replay of failed deliveries are explicitly out of scope. |
 
 Persistence and automated tests are optional in the assessment. Clean Architecture
 and CQRS are considerations, not requirements to add frameworks. Focused rule tests
 are planned because timestamp and state-transition behavior matters.
 
-## Working assumptions — not evaluator-confirmed
+## Implementation defaults — distinct from evaluator confirmations
 
-Three questions have been sent and remain unanswered:
-
-1. Stop radius: configurable per vehicle, default **10 metres**, measured from the
-   fixed location where a potential stop began.
-2. Route boundary: if a stop begins at 12:00, qualifies at 12:03 and movement
-   resumes at 12:05, end the old segment retrospectively at 12:00 and start the
-   new segment at 12:05. Preserve stationary observations in raw GPS history.
-3. Speeding coverage: require the full elapsed duration. A 30-second condition
-   ordinarily requires observations at 00, 10, 20 and 30 seconds.
-
-Other documented defaults:
+The three previously pending questions are resolved in the requirements above.
+The following details remain documented implementation choices:
 
 - Equality: speed equal to the limit is not speeding; distance equal to the stop
   radius is within it; rectangle edges count as inside.
@@ -58,6 +53,9 @@ Other documented defaults:
   Reevaluate the pending stop/current unfinished segment and speeding suffix.
   If new settings invalidate an active speeding episode's qualifying state,
   rearm it; otherwise preserve the latch and avoid duplicate alerts.
+- Apply live editing to the global radius as well: reevaluate both vehicles'
+  pending stop state in M5. Serialize the update with sample processing, preserve
+  completed segments and publish updated snapshots after state changes complete.
 - Insufficient retained time coverage cannot produce a duration alert.
 - Mark stale after 30 seconds of receipt silence, separately from movement.
   GPS time drives business durations; server receipt time may drive staleness.
@@ -66,6 +64,9 @@ Other documented defaults:
   memory-management policy.
 - Use deterministic routes, realistic progression and dwell durations. Shorten
   configurable rule durations for demos rather than accelerating GPS timestamps.
+- Retain in-memory storage; no ORM, database, Docker or external service is needed.
+  Log and skip failed simulator deliveries, then continue with fresh samples.
+  Frontend resynchronization cannot recover samples the backend never received.
 
 ## Architecture and contracts
 
@@ -87,7 +88,15 @@ Endpoints (only sample ingestion and snapshots are implemented in M1):
 - `GET /api/vehicles/{id}/history` and `/segments`
 - `GET /api/alerts` and `/api/geofences`
 - `GET`/`PUT /api/vehicles/{id}/settings`
+- `GET`/`PUT /api/settings` for global settings, initially `StopRadiusMeters`
 - `/hubs/tracking` in M2
+
+M3 will move `StopRadiusMeters` out of `VehicleSettings` and the two vehicle seed
+settings into global tracking settings, defaulting to 10. Validate a finite,
+positive radius and show it once in a global UI section. Per-vehicle settings
+retain speed limit, speeding duration and stop duration. Existing M1 code still
+contains the earlier per-vehicle radius representation; this is scheduled work,
+not an implemented correction. Spatial reevaluation becomes functional in M5.
 
 Process samples and settings under the same per-vehicle gate. Store accepted
 observations, rule changes and alerts together in memory, increment a monotonic
@@ -107,12 +116,12 @@ accepted telemetry. Do not promise durable delivery or add retry infrastructure.
 | M0 | Tooling, project references, config, seeds and startup docs. | Backend/frontend build; simulator starts; boundaries valid; run instructions verified. |
 | M1 | Telemetry DTOs, in-memory storage, ingestion, simulator routes, snapshots and basic Angular view. | Two independent vehicles update every 10 seconds with supplied speed/heading; browser restart preserves backend session. |
 | M2 | SignalR, revisions, snapshot handover and reconnect. | Live updates and resynchronization without stale overwrites. |
-| M3 | Speeding rules, alert storage/list, per-vehicle settings and reevaluation. | Continuous-window semantics, one alert per episode, interruption/rearming, immediate 20-to-15-second example. |
+| M3 | Speeding rules, alerts, per-vehicle settings and global settings model/API/UI; remove per-vehicle radius. | Full elapsed window, one alert per episode, interruption/rearming, immediate 20-to-15-second example; radius appears once globally. |
 | M4 | Geofencing and visualization. | Initial membership without alert; two-of-three confirmed entry/exit; edges defined. |
-| M5 | Spatial stops, segments, history APIs and settings reevaluation. | Short stops retain trip; long stop splits once; movement resumes a new segment; slow drift handled. |
-| M6 | Deterministic scenarios, validation and UI refinement. | All scenarios repeatable; independent per-vehicle configuration. |
-| M7 | Integration, concurrency/reconnect checks and architectural documentation. | Consistent sample/settings processing, clear errors and no duplicate events. |
-| M8 | Clean checkout verification and demonstration. | Another developer can run all three apps and demonstrate required behavior. |
+| M5 | Spatial stops using the global radius, confirmed segment boundaries, history APIs and settings reevaluation. | Stop confirmed at 12:03 closes at the 12:00 sample; next route starts at 12:05 on movement; global radius changes reevaluate both vehicles; completed history preserved. |
+| M6 | Deterministic scenarios, validation and UI refinement. | All scenarios repeatable; global radius clearly distinguished from independent per-vehicle thresholds. |
+| M7 | Integration, concurrency/reconnect checks and architectural documentation. | Global settings updates coordinate with both vehicles' samples; outage recovery without replay; no duplicate events. |
+| M8 | Local clean checkout verification and demonstration. | Another developer can run all three apps locally using Rider or terminal instructions; no hosted deployment required. |
 
 Target ten working days: M0 on day 1, M1 days 1–2, M2 day 3, M3 day 4,
 M4 day 5, M5 days 6–7, M6 day 8, M7 day 9, M8 day 10. Drop optional map
@@ -123,6 +132,18 @@ coverage, interruptions, episode deduplication, independent vehicles, geofence
 majorities/edges, fixed-anchor drift, brief/prolonged stops, resume behavior,
 settings reevaluation and completed-history preservation. Later integration
 checks cover concurrent settings/samples and reconnect synchronization.
+
+Explicit clarification acceptance checks:
+
+- No speeding alert at 20 seconds; alert at 30 seconds if all four samples exceed
+  the limit. A sample equal to or below the limit interrupts the episode.
+- Confirmation at 12:03 closes the previous route at the 12:00 sample. The next
+  route starts at the 12:05 resumption sample, without a stationary connecting
+  line between routes. Stationary observations remain in raw history.
+- One global radius applies to both vehicles; speed and duration settings stay
+  independent. Updating settings leaves completed historical segments unchanged.
+- Simulator delivery failures produce no replay backlog; fresh samples resume
+  normally when the backend becomes available.
 
 ## Progress
 
@@ -139,9 +160,9 @@ checks cover concurrent settings/samples and reconnect synchronization.
   - [x] M1.5 — Angular polling, coordinate map and tracking cards.
   - [x] M1.6 — Focused tests, live checks and startup documentation.
 - [ ] M2 — Live updates and synchronization
-- [ ] M3 — Speeding and runtime settings
+- [ ] M3 — Speeding, per-vehicle settings and global radius settings
 - [ ] M4 — Geofencing
-- [ ] M5 — Stops and route segments
+- [ ] M5 — Global-radius stops and confirmed route boundaries
 - [ ] M6 — Scenarios and UI completion
 - [ ] M7 — Integration and documentation
 - [ ] M8 — Clean-run verification and demo
@@ -280,3 +301,84 @@ are not implemented as rules in M1.
 
 Next milestone: **M2**, only after review/request. No SignalR, alert rules, stop
 detection, segmentation, settings editing, commits or deployment were added.
+
+### 18 October 2026 — Shared Rider API/frontend startup
+
+Added three shared project-relative configurations in `.run/`: **GPS Tracking
+API** (existing `http` profile with build before launch), **GPS Tracking Frontend**
+(`npm start` using Rider's project Node interpreter), and **GPS Tracking — API +
+Frontend** (compound parallel launch). Simulator startup remains separate. README
+now documents one-click startup, initial `npm ci`, individual launches and stopping
+both processes. No application code, dependencies or milestone scope changed.
+
+Verification: all three XML files parse, compound references resolve, referenced
+project/package files exist, and `.run/` files are not ignored. Rider's run
+configuration API recognized all three configurations. Existing processes already
+occupied ports 5078 and 4200; their API health, frontend page and proxied health
+checks passed. The IDE automation could not start the compound configuration
+(reported "The process has failed to start"). No existing sessions were stopped.
+One-click launch and shutdown therefore still require a manual Rider check with
+those ports free. Git whitespace check passed. M2 remains untouched.
+
+### 18 October 2026 — Evaluator clarifications incorporated into the plan
+
+All three pending questions are resolved: stop radius is global with a 10-metre
+default; the old route ends at the stop-onset sample and the next starts at the
+movement-resumption sample; speeding requires full elapsed coverage, including
+00/10/20/30-second samples for the default 30-second duration.
+
+The proposed architecture and local delivery are accepted. External services,
+LocalDB and Docker are permitted, not required. Keep the current in-memory design.
+Simulator buffering and replay after outages are explicitly out of scope.
+
+Updated current requirements, defaults, planned settings endpoints, milestone
+scopes and acceptance checks, plus README and architecture notes. M3 now includes
+the global settings model/API/UI and removal of per-vehicle radius; M5 includes
+shared-radius stop processing and reevaluation. Live global-radius editing follows
+the approved plan; fixed anchoring and geofence initialization remain implementation
+choices, not additional evaluator confirmations.
+
+Historical log entries above describe what was known at their respective stages;
+their references to pending questions are superseded by this entry. M0 and M1
+remain complete; M2-M8 remain incomplete. Current code still contains per-vehicle
+radius seeds, explicitly scheduled for correction in M3. No application code,
+configuration, dependencies or runtime behavior changed in this documentation
+update. Verification: documentation consistency review and Git whitespace check;
+no builds or tests required for this documentation-only change.
+
+### 18 October 2026 — Thin controllers and tracking constants
+
+Moved sample creation/validation handling into an application operation accepting
+`SubmitSampleCommand` and returning `SubmitSampleResult`. Controllers delegate to
+that operation; API extensions handle DTO and HTTP result mapping. Domain sample
+validation bounds/messages, tracking problem messages and health status now use
+named constants. Existing routes, payloads, HTTP status codes and storage behavior
+are preserved. The supplied `TaskExtensions` helper remains unchanged because this
+in-memory operation is synchronous. No new milestone functionality was added.
+
+Verification: `dotnet test tests/GpsTracking.Tests/GpsTracking.Tests.csproj
+--no-restore --verbosity minimal` passed all 24 tests, including HTTP validation,
+unknown/non-newer sample rejection and snapshot compatibility.
+
+### 18 October 2026 — Consistent OK results and startup validation constants
+
+Added a synchronous `ToOkResult` overload alongside the existing task overload.
+Health and snapshot GET responses now use the helper without introducing fake
+asynchronous work. Sample ingestion still returns 204 and errors keep their
+existing status codes. Extracted all `TrackingOptionsValidator` messages into
+API-owned constants and named its count/positive-threshold limits; coordinate
+validation reuses domain bounds. No settings scope or validation behavior changed.
+
+Verification: all 24 backend tests passed with `dotnet test
+tests/GpsTracking.Tests/GpsTracking.Tests.csproj --no-restore --verbosity minimal`.
+
+### 18 October 2026 — Built-in global exception handling
+
+Enabled `UseExceptionHandler` before CORS/controller endpoints, using the existing
+ProblemDetails registration. Added an integration test with a failing test-only
+tracking store in Development and Production. Both cases verify a 500 problem
+response without internal exception details. Existing expected rejection statuses
+remain covered. No custom middleware, extra packages or business rules were added.
+
+Verification: all 26 backend tests passed after correcting the test environment
+data to use MemberData (framework environment names are not attribute constants).

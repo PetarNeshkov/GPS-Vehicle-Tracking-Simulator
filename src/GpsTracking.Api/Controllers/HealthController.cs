@@ -1,12 +1,14 @@
 using GpsTracking.Api.Constants;
+using GpsTracking.Api.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GpsTracking.Api.Controllers;
 
-[ApiController]
-[Route(ApiConstants.HealthRoute)]
-public sealed class HealthController : ControllerBase
+public sealed class HealthController : BaseApiController
 {
     [HttpGet]
-    public IActionResult Get() => Ok(new { status = "healthy" });
+    public IActionResult Get()
+    {
+        return new { status = ApiConstants.HealthyStatus }.ToOkResult();
+    }
 }

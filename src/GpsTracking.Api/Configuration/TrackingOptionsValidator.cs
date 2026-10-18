@@ -1,3 +1,5 @@
+using GpsTracking.Api.Constants;
+using GpsTracking.Domain.Constants;
 using Microsoft.Extensions.Options;
 
 namespace GpsTracking.Api.Configuration;
@@ -10,8 +12,10 @@ public sealed class TrackingOptionsValidator : IValidateOptions<TrackingOptions>
         var vehicles = options.Vehicles ?? [];
         var geofences = options.Geofences ?? [];
 
-        if (vehicles.Length != 2)
-            errors.Add("Tracking:Vehicles must contain exactly two vehicles.");
+        if (vehicles.Length != TrackingValidationConstants.RequiredVehicleCount)
+        {
+            errors.Add(TrackingValidationConstants.InvalidVehicleCount);
+        }
 
         var vehicleIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (var vehicle in vehicles)
@@ -19,19 +23,24 @@ public sealed class TrackingOptionsValidator : IValidateOptions<TrackingOptions>
             if (vehicle is null || string.IsNullOrWhiteSpace(vehicle.Id)
                 || string.IsNullOrWhiteSpace(vehicle.Name) || !vehicleIds.Add(vehicle.Id))
             {
-                errors.Add("Each vehicle must have a unique non-empty Id and a non-empty Name.");
+                errors.Add(TrackingValidationConstants.InvalidVehicleIdentity);
                 continue;
             }
 
             var settings = vehicle.Settings;
-            if (settings is null || !double.IsFinite(settings.SpeedLimitKmh) || settings.SpeedLimitKmh <= 0
-                || settings.SpeedingDurationSeconds <= 0 || settings.StopDurationSeconds <= 0
-                || !double.IsFinite(settings.StopRadiusMeters) || settings.StopRadiusMeters <= 0)
-                errors.Add($"Vehicle '{vehicle.Id}' must have finite positive thresholds, durations and radius.");
+            if (settings is null || !double.IsFinite(settings.SpeedLimitKmh)
+                || settings.SpeedLimitKmh <= TrackingValidationConstants.PositiveThresholdLowerBound
+                || settings.SpeedingDurationSeconds <= TrackingValidationConstants.PositiveThresholdLowerBound
+                || settings.StopDurationSeconds <= TrackingValidationConstants.PositiveThresholdLowerBound
+                || !double.IsFinite(settings.StopRadiusMeters)
+                || settings.StopRadiusMeters <= TrackingValidationConstants.PositiveThresholdLowerBound)
+            {
+                errors.Add(string.Format(TrackingValidationConstants.InvalidVehicleSettingsFormat, vehicle.Id));
+            }
         }
 
-        if (geofences.Length == 0)
-            errors.Add("Tracking:Geofences must contain at least one rectangular region.");
+        if (geofences.Length < TrackingValidationConstants.MinimumGeofenceCount)
+            errors.Add(TrackingValidationConstants.MissingGeofences);
 
         var geofenceIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (var geofence in geofences)
@@ -39,19 +48,23 @@ public sealed class TrackingOptionsValidator : IValidateOptions<TrackingOptions>
             if (geofence is null || string.IsNullOrWhiteSpace(geofence.Id)
                 || string.IsNullOrWhiteSpace(geofence.Name) || !geofenceIds.Add(geofence.Id))
             {
-                errors.Add("Each geofence must have a unique non-empty Id and a non-empty Name.");
+                errors.Add(TrackingValidationConstants.InvalidGeofenceIdentity);
                 continue;
             }
 
-            if (!ValidCoordinate(geofence.MinLatitude, 90) || !ValidCoordinate(geofence.MaxLatitude, 90)
-                || !ValidCoordinate(geofence.MinLongitude, 180) || !ValidCoordinate(geofence.MaxLongitude, 180)
+            if (!ValidCoordinate(geofence.MinLatitude, GpsSampleConstants.MaximumLatitude)
+                || !ValidCoordinate(geofence.MaxLatitude, GpsSampleConstants.MaximumLatitude)
+                || !ValidCoordinate(geofence.MinLongitude, GpsSampleConstants.MaximumLongitude)
+                || !ValidCoordinate(geofence.MaxLongitude, GpsSampleConstants.MaximumLongitude)
                 || geofence.MinLatitude >= geofence.MaxLatitude || geofence.MinLongitude >= geofence.MaxLongitude)
-                errors.Add($"Geofence '{geofence.Id}' must have valid coordinates with minimums below maximums.");
+            {
+                errors.Add(string.Format(TrackingValidationConstants.InvalidGeofenceCoordinatesFormat, geofence.Id));
+            }
         }
 
         return errors.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(errors);
     }
 
-    private static bool ValidCoordinate(double value, double limit) =>
-        double.IsFinite(value) && value >= -limit && value <= limit;
+    private static bool ValidCoordinate(double value, double limit)
+        => double.IsFinite(value) && value >= -limit && value <= limit;
 }

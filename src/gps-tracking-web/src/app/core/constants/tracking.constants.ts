@@ -1,0 +1,14 @@
+export const TRACKING = {
+  vehiclesPath: '/api/vehicles',
+  pollingIntervalMs: 2_000,
+  requestTimeoutMs: 5_000,
+  colors: ['#0b7285', '#a84212'],
+  view: {
+    width: 1_000,
+    height: 400,
+    minLatitude: 42.6935,
+    maxLatitude: 42.7015,
+    minLongitude: 23.3100,
+    maxLongitude: 23.3350
+  }
+} as const;

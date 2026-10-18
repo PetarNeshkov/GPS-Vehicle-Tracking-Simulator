@@ -23,6 +23,27 @@ Application owns `TrackingService` and `ITrackingStore`. Infrastructure supplies
 `InMemoryTrackingStore`; Contracts holds telemetry requests and snapshot responses.
 Domain validates immutable GPS samples, including finite values and explicit units.
 Controllers map transport data and delegate processing to Application.
+All concrete API controllers inherit `[ApiController]` and the shared
+`api/[controller]` route from abstract `BaseApiController`. Actions retain their
+HTTP verb and resource-specific suffix attributes. URLs remain `/api/health`,
+`/api/vehicles` and `/api/vehicles/{id}/samples`; method names are not URL segments.
+Response formatters select JSON or ProblemDetails content types without a global
+`Produces` override. Shared client URL constants remain in Contracts.
+The sample controller maps requests to an application command and delegates to
+`TrackingService.SubmitSample`. That operation validates domain sample creation
+and returns a typed acceptance result. API mapping extensions translate snapshots
+and acceptance results into transport DTOs and HTTP responses. Domain validation
+bounds/messages and API response messages live in constants owned by their layers.
+`TaskExtensions.ToOkResult` supports both plain values and asynchronous results.
+Both GET controllers use it; the in-memory path stays synchronous without artificial
+task wrappers. Ingestion retains 204 and errors retain their ProblemDetails status.
+Startup tracking validation messages and count/threshold limits live in
+`TrackingValidationConstants`; coordinate limits reuse domain constants.
+The built-in `UseExceptionHandler` middleware runs before CORS and controllers,
+using the registered ProblemDetails service for unexpected request failures.
+It returns generic 500 responses in Development and Production while framework
+logging retains exception diagnostics. Expected 400/404/409 results keep their
+explicit mappings. No custom exception middleware or duplicate logging is needed.
 
 All application projects live under `src/`; the solution and repository-wide
 configuration remain at the root:
@@ -90,6 +111,18 @@ persistence remains outside the agreed scope.
   displayed data; successful polls clear errors. SVG markers use distinct colors
   and heading arrows within fixed demo bounds. No stop status is inferred.
 
+Frontend feature services use the shared `ApiService` in `core/services` for
+GET/POST/PUT/PATCH/DELETE requests. `TrackingApiService` owns tracking endpoints and
+response types. The shared wrapper preserves HttpClient errors and body handling,
+including FormData, without forcing headers or adding retries. Polling and its
+timeout/error presentation remain owned by `TrackingStore`. Extend this wrapper
+when a future feature requires additional HTTP capabilities.
+Frontend application error messages live in `core/constants/error-messages.constants.ts`.
+Use named constants for validation messages and limits when forms are introduced;
+the current dashboard has no form validators. Polling timeouts and map bounds
+already live in tracking constants. Backend error bodies remain unmodified by
+the shared HTTP wrapper.
+
 `POST /api/vehicles/{id}/samples` accepts timestamp, latitude, longitude, speedKmh
 and heading. The route is the sole vehicle identifier. Success is 204; invalid
 payloads return 400, unknown vehicles 404 and non-newer timestamps 409, using
@@ -151,6 +184,15 @@ project dependency between processes. Vehicle IDs and the backend URL must be
 kept consistent. Runtime settings and rule evaluations are future work. In-memory
 raw history is unbounded for the short demo; production retention is out of scope.
 
-The three pending evaluator decisions are tracked in the root handoff. The
-10-metre radius is provisional. No M1 code implements the route-boundary or
-speeding-window assumptions.
+The evaluator confirmed a globally configurable stop radius (default 10 metres),
+route boundaries at stop onset and movement resumption, and full elapsed speeding
+windows. M3 will replace the current per-vehicle radius seeds with global settings
+and `GET`/`PUT /api/settings`; M5 will apply radius changes to both vehicles' pending
+stop state. Speed limit and speeding/stop durations remain per vehicle. No M1 code
+implements these rules. Fixed stop anchors and geofence initialization remain
+implementation defaults rather than separately confirmed requirements.
+
+Local delivery and the HTTP/SignalR architecture are accepted. Persistence is
+optional; keep the in-memory implementation without an ORM or Docker. Simulator
+buffering/replay after backend outages is explicitly excluded. Failed observations
+are skipped; frontend reconnect reloads only state actually held by the backend.

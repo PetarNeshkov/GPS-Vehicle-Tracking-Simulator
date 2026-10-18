@@ -1,0 +1,65 @@
+<p class="intro">Two vehicles around Sofia. Positions update when GPS observations arrive.</p>
+
+@if (store.connectionError(); as error) {
+  <p class="connection-error" role="alert">{{ error }}</p>
+} @else if (!store.hasLoaded()) {
+  <p role="status">Connecting to the tracking service…</p>
+}
+
+<section class="map-panel" aria-label="Vehicle positions">
+  <div class="map-heading"><h2>Position overview</h2><span>North ↑ · Simplified coordinate view</span></div>
+  <svg viewBox="0 0 1000 400" role="img" aria-label="Latest observed vehicle positions around Sofia">
+    <defs>
+      <pattern id="coordinate-grid" width="100" height="50" patternUnits="userSpaceOnUse">
+        <path d="M 100 0 L 0 0 0 50" fill="none" stroke="#cedbdc" stroke-width="1"/>
+      </pattern>
+    </defs>
+    <rect width="1000" height="400" fill="url(#coordinate-grid)"/>
+    @for (vehicle of store.vehicles(); track vehicle.id; let index = $index) {
+      @if (vehicle.latestSample; as sample) {
+        <g [attr.transform]="markerTransform(sample)">
+          <title>{{ vehicle.name }}: {{ sample.speedKmh }} km/h, heading {{ sample.heading }}°</title>
+          <circle r="19" fill="white" [attr.stroke]="colors[index % colors.length]" stroke-width="2"/>
+          <path d="M 0 -14 L 9 10 L 0 6 L -9 10 Z" [attr.fill]="colors[index % colors.length]"/>
+        </g>
+        <text [attr.x]="x(sample) + 25" [attr.y]="y(sample) + 5" class="marker-label">{{ vehicle.name }}</text>
+      }
+    }
+  </svg>
+</section>
+
+<section class="vehicle-grid" aria-label="Vehicle tracking details">
+  @for (vehicle of store.vehicles(); track vehicle.id; let index = $index) {
+    <article class="vehicle-card" [style.border-top-color]="colors[index % colors.length]">
+      <h2>{{ vehicle.name }}</h2>
+      @if (vehicle.latestSample; as sample) {
+        <p class="speed">{{ sample.speedKmh | number:'1.0-1' }} <span>km/h</span></p>
+        <dl>
+          <div>
+            <dt>Heading</dt>
+            <dd>{{ sample.heading % 360 | number:'1.0-1' }}°</dd>
+          </div>
+          <div>
+            <dt>Latitude</dt>
+            <dd>{{ sample.latitude | number:'1.5-5' }}</dd>
+          </div>
+          <div>
+            <dt>Longitude</dt>
+            <dd>{{ sample.longitude | number:'1.5-5' }}</dd>
+          </div>
+          <div>
+            <dt>Latest GPS time</dt>
+            <dd>{{ sample.timestamp | date:'medium' }}</dd>
+          </div>
+          <div>
+            <dt>Observations</dt>
+            <dd>{{ vehicle.sampleCount }}</dd>
+          </div>
+        </dl>
+      } @else {
+        <p class="waiting">Waiting for GPS data</p>
+        <p>Start the simulator to receive this vehicle’s position.</p>
+      }
+    </article>
+  }
+</section>

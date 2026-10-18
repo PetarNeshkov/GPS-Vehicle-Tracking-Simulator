@@ -82,13 +82,22 @@ there is no live hub or real-time connection to verify yet.
 1. Open `GPS-Vehicle-Tracking-Simulator.sln` and allow project loading/restore.
 2. Ensure Rider uses the .NET CLI from the installed SDK location and Node
    24.19.0. The repository SDK file selects 10.0.402.
-3. Select the API's `http` launch profile (`GpsTracking.Api`), then Run.
-4. Run the `Simulator` launch profile for `GpsTracking.Simulator`.
-5. Create an npm run configuration with `src/gps-tracking-web/package.json`, command
-   `run`, script `start`, or run the frontend terminal command above.
-6. Visit the frontend and verify both health URLs. The API does not start Angular
-   automatically. Optionally group the three configurations into a Rider compound
-   configuration; no machine-specific IDE configuration is committed.
+3. Run `npm ci` in `src/gps-tracking-web` once before the first launch.
+4. Select **GPS Tracking — All** in the Run configuration dropdown and
+   click Run. The shared compound configuration starts the API's `http` profile
+   and Angular's `npm start`, plus the simulator's `Simulator` profile in parallel.
+   Open `http://localhost:4200` manually.
+5. Vehicles appear after the simulator successfully delivers its first samples,
+   then update approximately every 10 seconds.
+6. Use Rider's Stop controls for **GPS Tracking API** and **GPS Tracking Frontend**
+   and **GPS Tracking Simulator** to stop all three processes.
+
+The shared configurations live in `.run/` and use project-relative paths and
+Rider's configured Node interpreter. If they do not appear immediately, reload
+the solution. The individual API, frontend and simulator configurations remain available.
+No startup ordering is required: frontend polling recovers when the API is ready,
+and a failed initial simulator delivery is followed by a fresh sample on its next interval.
+Avoid starting a second copy while ports 5078 or 4200 are already in use.
 
 ### Verify M1 in Rider
 
@@ -120,8 +129,10 @@ elapsed time, carrying distance across vertices of its closed local path.
 | `src/GpsTracking.Simulator/appsettings.json` | Backend URL, two matching vehicle IDs and reporting interval. |
 | `src/gps-tracking-web/src/proxy.conf.cjs` | `/api/**` and future `/hubs/**` forwarding; backend override via `GPS_TRACKING_API_URL`. |
 
-Each vehicle starts with 80 km/h, 30-second speeding duration, 180-second stop
-duration and a **provisional** 10-metre stop radius. The synthetic geofences are
+Each vehicle starts with 80 km/h, 30-second speeding duration and 180-second stop
+duration. The evaluator confirmed a **global** 10-metre default stop radius.
+Current M1 seeds still store radius per vehicle; M3 will move it into global
+settings, and M5 will implement spatial stop detection. The synthetic geofences are
 Sofia West (latitude 42.695–42.700, longitude 23.315–23.320) and Sofia East
 (latitude 42.695–42.700, longitude 23.325–23.330). Geofence rules are deferred to M4.
 
@@ -146,15 +157,19 @@ dotnet run --project src/GpsTracking.Simulator -- --Simulator:TickIntervalSecond
 If changing the API port, update its launch profile, simulator backend URL and
 frontend proxy target together. If changing the frontend port, update the API's
 `Frontend:Origin` as well. Restart processes after startup configuration changes;
-live per-vehicle settings are an M3 feature.
+live per-vehicle and global settings are an M3 feature.
 
 ## Architecture, status and limitations
 
 - [Project boundaries and decisions](docs/architecture.md)
 - [Requirements, assumptions, milestones and actual verification log](GPS_TRACKING_IMPLEMENTATION_PLAN.md)
 
-The three pending evaluator answers cover stop radius, exact trip boundaries and
-speeding-window elapsed duration. They remain assumptions, not confirmed rules.
+The evaluator confirmed the global stop radius, routes ending at the start of a
+confirmed stop and restarting when movement resumes, and full elapsed speeding
+windows (four observations at 00/10/20/30 seconds). These rules remain future
+milestone work. The fixed stop anchor and geofence initialization details remain
+documented implementation defaults. Delivery is local; simulator buffering and
+replay after failed deliveries are explicitly out of scope.
 Tracking state is session-only and local to one backend instance. Raw history is
 retained without a cap for this short demo. No
 persistence, broker, authentication, hosted deployment or map provider is included.
