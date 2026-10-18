@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "gpstracking.application": {
+        "type": "Project",
+        "dependencies": {
+          "GpsTracking.Domain": "[1.0.0, )"
+        }
+      },
+      "gpstracking.domain": {
+        "type": "Project"
+      }
+    }
+  }
+}

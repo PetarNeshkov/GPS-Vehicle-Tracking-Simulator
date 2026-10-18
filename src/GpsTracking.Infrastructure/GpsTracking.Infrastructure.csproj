@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\GpsTracking.Application\GpsTracking.Application.csproj" />
+    <ProjectReference Include="..\GpsTracking.Domain\GpsTracking.Domain.csproj" />
+  </ItemGroup>
+</Project>

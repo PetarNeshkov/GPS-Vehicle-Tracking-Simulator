@@ -1,50 +1,165 @@
 # GPS Vehicle Tracking Simulator
 
-The repository currently contains a cleaned application shell. GPS simulation and
-tracking features have not been implemented.
+M1 connects the simulator, API and Angular dashboard. Two vehicles independently
+follow deterministic routes, supplying speed and heading at intervals of at least
+10 seconds. Angular polls every two seconds and displays a simplified coordinate
+map. Tracking state lives in the backend process.
 
-## Projects
+## Prerequisites
 
-- `GpsTracking.sln` — open this solution in Rider.
-- `GpsTracking.Api/` — ASP.NET Core backend targeting .NET 10.
-- `gps-tracking-web/` — Angular 18 frontend.
+| Tool | Selected version |
+| --- | --- |
+| .NET SDK | 10.0.402, selected by `global.json` |
+| Node.js | 24.19.0, recorded in `src/gps-tracking-web/.nvmrc` |
+| npm | 11.17.0 |
+| Angular / CLI / build tooling | 22.2.3, installed locally by npm |
+| TypeScript | 6.0.3, installed locally by npm |
+| Chrome | Required only for the existing headless frontend test |
 
-This cleanup retains the existing framework versions and HTTPS/SPA startup setup.
-The planned Angular 22 upgrade belongs to the next setup milestone.
+No global Angular CLI, database, Docker, map key or development certificate is
+needed. Use the exact SDK above: preview SDK selection and roll-forward are disabled.
 
-## Run locally
+## Restore and build
 
-Install the frontend dependencies:
+From the repository root:
 
 ```powershell
-cd gps-tracking-web
+dotnet --version
+dotnet restore GPS-Vehicle-Tracking-Simulator.sln --locked-mode
+dotnet build GPS-Vehicle-Tracking-Simulator.sln --no-restore
+dotnet test GPS-Vehicle-Tracking-Simulator.sln --no-restore
+cd src/gps-tracking-web
 npm ci
-cd ..
-```
-
-Trust the development certificate and start the backend:
-
-```powershell
-dotnet dev-certs https --trust
-dotnet run --project GpsTracking.Api --launch-profile https
-```
-
-The existing SPA proxy starts the Angular development server. Open
-`https://localhost:4200` to see the application title. The backend uses
-`https://localhost:7239`; its development OpenAPI document is at `/openapi/v1.json`.
-
-In Rider, reopen `GpsTracking.sln` after the rename and run the API's `https`
-launch profile. The frontend can also be started separately with `npm start`
-from `gps-tracking-web`.
-
-## Checks
-
-```powershell
-dotnet build GpsTracking.sln
-cd gps-tracking-web
 npm run build
 npm test -- --watch=false --browsers=ChromeHeadless
+cd ../..
 ```
 
-The frontend test command requires Chrome. Build output, dependency directories,
-local certificates, and IDE state are excluded from Git.
+The .NET build does not install or build the frontend. Run both build commands.
+NuGet and npm lockfiles are committed; generated output and IDE state are ignored.
+
+## Run in three terminals
+
+Run these from the repository root, one command per terminal:
+
+```powershell
+# Terminal 1: backend
+dotnet run --project src/GpsTracking.Api --launch-profile http
+```
+
+```powershell
+# Terminal 2: simulator
+dotnet run --project src/GpsTracking.Simulator --launch-profile Simulator
+```
+
+```powershell
+# Terminal 3: frontend
+npm --prefix src/gps-tracking-web start
+```
+
+Open `http://localhost:4200`. The page shows **GPS Vehicle Tracking Simulator**.
+The API listens at `http://localhost:5078`. Stop each process with Ctrl+C.
+
+Both hosts validate configuration at startup and emit standard lifecycle/error
+logs. The simulator sends an initial sample, then waits at least 10 seconds between
+reports. Failed deliveries are logged and skipped; later samples continue normally.
+The dashboard retains its latest data during connection failures and recovers on
+a successful poll. SignalR is reserved for M2.
+
+Verify the API directly and through the frontend proxy:
+
+```powershell
+Invoke-RestMethod http://localhost:5078/api/health
+Invoke-RestMethod http://localhost:4200/api/health
+```
+
+Both return `status: healthy`. The development OpenAPI document is available at
+`http://localhost:5078/openapi/v1.json`. `/hubs/**` forwarding is configured for M2;
+there is no live hub or real-time connection to verify yet.
+
+## Rider
+
+1. Open `GPS-Vehicle-Tracking-Simulator.sln` and allow project loading/restore.
+2. Ensure Rider uses the .NET CLI from the installed SDK location and Node
+   24.19.0. The repository SDK file selects 10.0.402.
+3. Select the API's `http` launch profile (`GpsTracking.Api`), then Run.
+4. Run the `Simulator` launch profile for `GpsTracking.Simulator`.
+5. Create an npm run configuration with `src/gps-tracking-web/package.json`, command
+   `run`, script `start`, or run the frontend terminal command above.
+6. Visit the frontend and verify both health URLs. The API does not start Angular
+   automatically. Optionally group the three configurations into a Rider compound
+   configuration; no machine-specific IDE configuration is committed.
+
+### Verify M1 in Rider
+
+1. Start API and frontend first: both cards should be waiting for GPS data.
+   `GET http://localhost:5078/api/vehicles` returns two empty snapshots.
+2. Start the simulator: two colored markers and cards appear, with speeds of 42
+   and 66 km/h. After roughly 10 seconds coordinates, timestamps and sample counts
+   change independently. The arrows use supplied heading.
+3. Refresh the browser: sample counts and latest positions remain in the backend.
+4. Stop the API: the dashboard shows a connection error and retains its last data.
+   Restart it: polling recovers; the new session fills as fresh samples arrive.
+5. Stop the simulator and restart the API to inspect the empty session reliably.
+6. Run `GpsTracking.Tests` through Rider's test runner. Run the frontend test
+   command above in Rider's terminal; Chrome is required.
+
+The map uses fixed demo bounds, not a geographic basemap. M1 does not include
+alert rules, stops/trips, history display or editable settings.
+
+## Configuration
+
+Demo routes and speeds are defined in
+`src/GpsTracking.Simulator/Movement/DemoRoutes.cs`. Each loop advances by actual
+elapsed time, carrying distance across vertices of its closed local path.
+
+| Location | Settings |
+| --- | --- |
+| `src/GpsTracking.Api/appsettings.json` | Two vehicle seeds and their initial settings; two rectangular Sofia demo zones; permitted frontend origin. |
+| `src/GpsTracking.Api/Properties/launchSettings.json` | Development API address, port 5078. |
+| `src/GpsTracking.Simulator/appsettings.json` | Backend URL, two matching vehicle IDs and reporting interval. |
+| `src/gps-tracking-web/src/proxy.conf.cjs` | `/api/**` and future `/hubs/**` forwarding; backend override via `GPS_TRACKING_API_URL`. |
+
+Each vehicle starts with 80 km/h, 30-second speeding duration, 180-second stop
+duration and a **provisional** 10-metre stop radius. The synthetic geofences are
+Sofia West (latitude 42.695–42.700, longitude 23.315–23.320) and Sofia East
+(latitude 42.695–42.700, longitude 23.325–23.330). Geofence rules are deferred to M4.
+
+ASP.NET Core and simulator configuration support standard .NET environment
+variables (`__` separates keys) and command-line overrides. For example:
+
+```powershell
+dotnet run --project src/GpsTracking.Simulator -- --Simulator:TickIntervalSeconds=15
+```
+
+The simulator loads configuration from its output directory, so project-root and
+Rider launches use the same copied file. Edit its source appsettings and rebuild
+before using `--no-build`. Keep simulator IDs aligned with API seed IDs.
+
+Invalid configuration fails startup with a specific message. This example must
+exit with an error rather than start (it does not modify the configuration file):
+
+```powershell
+dotnet run --project src/GpsTracking.Simulator -- --Simulator:TickIntervalSeconds=1
+```
+
+If changing the API port, update its launch profile, simulator backend URL and
+frontend proxy target together. If changing the frontend port, update the API's
+`Frontend:Origin` as well. Restart processes after startup configuration changes;
+live per-vehicle settings are an M3 feature.
+
+## Architecture, status and limitations
+
+- [Project boundaries and decisions](docs/architecture.md)
+- [Requirements, assumptions, milestones and actual verification log](GPS_TRACKING_IMPLEMENTATION_PLAN.md)
+
+The three pending evaluator answers cover stop radius, exact trip boundaries and
+speeding-window elapsed duration. They remain assumptions, not confirmed rules.
+Tracking state is session-only and local to one backend instance. Raw history is
+retained without a cap for this short demo. No
+persistence, broker, authentication, hosted deployment or map provider is included.
+
+`npm ci` currently reports upstream deprecation notices from the retained Karma
+stack and notices for optional native dependency scripts. The selected Windows
+setup passed installation, production build, headless tests and dev-server startup
+without enabling additional install scripts. These notices are not suppressed.
