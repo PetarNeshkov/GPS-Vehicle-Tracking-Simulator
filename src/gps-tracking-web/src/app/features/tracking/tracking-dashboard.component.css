@@ -108,3 +108,16 @@ dd {
     flex-direction: column;
   }
 }
+
+.geofence-region {
+  fill: #62a86b;
+  fill-opacity: 0.12;
+  stroke: #42794a;
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+}
+
+.geofence-label {
+  fill: #28552e;
+  font-size: 13px;
+}

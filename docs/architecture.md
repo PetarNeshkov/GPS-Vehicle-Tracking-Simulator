@@ -19,7 +19,7 @@ package dependencies. Application has no framework dependencies. Infrastructure
 implements application storage boundaries. SignalR types
 stay in the API. The simulator cannot access backend state or domain rules.
 
-Application owns `TrackingService` and `ITrackingStore`. Infrastructure supplies
+Application owns command/query handlers and `ITrackingStore`. Infrastructure supplies
 `InMemoryTrackingStore`; Contracts holds telemetry requests and snapshot responses.
 Domain validates immutable GPS samples, including finite values and explicit units.
 Controllers map transport data and delegate processing to Application.
@@ -30,12 +30,12 @@ HTTP verb and resource-specific suffix attributes. URLs remain `/api/health`,
 Response formatters select JSON or ProblemDetails content types without a global
 `Produces` override. Shared client URL constants remain in Contracts.
 The sample controller maps requests to an application command and delegates to
-`TrackingService.SubmitSampleAsync`. That operation validates domain sample creation
+`SubmitSampleHandler.HandleAsync`. That operation validates domain sample creation
 and returns a typed acceptance result. API mapping extensions translate snapshots
 and acceptance results into transport DTOs and HTTP responses. Domain validation
 bounds/messages and API response messages live in constants owned by their layers.
 `TaskExtensions.ToOkResult` supports both plain values and asynchronous results.
-Both GET controllers use it. Reads stay synchronous; ingestion awaits best-effort
+GET controllers use it. Reads stay synchronous; ingestion awaits best-effort
 publication after storing a sample. Ingestion retains 204 and errors retain their
 ProblemDetails status.
 Startup tracking validation messages and count/threshold limits live in
@@ -79,6 +79,14 @@ controllers to bypass Application. Dependency direction defines the architecture
 the consistent directory layout makes it easier to navigate. No mediator or
 CQRS framework is required to maintain these boundaries.
 
+Lightweight CQRS is implemented in Application's `Tracking/Commands` and
+`Tracking/Queries`. The combined `TrackingService` has been removed; controllers
+invoke handlers directly. Commands cover sample ingestion and settings mutations,
+while queries provide snapshots, settings, alerts and geofence definitions. Reads
+and writes use the existing in-memory store. Commands may return result snapshots.
+Domain rules, atomic processing and publication outside storage gates remain
+intact. No MediatR, separate databases or event sourcing are needed.
+
 ## Current behavior
 
 Each host owns a service-registration extension named `AddServiceCollection`.
@@ -100,7 +108,8 @@ persistence remains outside the agreed scope.
 
 - The API binds and validates two vehicle definitions, their independent initial
   settings, and two geofence rectangles. It exposes health, development OpenAPI,
-  ingestion, snapshots, alerts and live settings. Geofences remain seed definitions.
+  ingestion, snapshots, alerts, live settings and geofence reads. Geofence definitions
+  are fixed at startup; their membership is evaluated for each accepted sample.
 - Domain records represent seed values without depending on ASP.NET Core or
   configuration packages. API options and validators own startup binding.
 - The simulator's .NET generic host validates its backend URL, minimum interval,
@@ -197,6 +206,36 @@ successful saves use the latest known revision, failed saves retain input, and
 duplicate submissions are blocked while a request is pending. Concurrent clients
 use last-write-wins settings. Backend restart restores configured defaults and
 clears alerts; browser refresh preserves backend state.
+
+### M4 geofencing
+
+Each vehicle session owns one Domain `GeofenceRule` per configured rectangle.
+The rule retains at most three booleans and an Unknown/Inside/Outside membership.
+Rectangle comparisons include edges. Three observations initialize the majority
+without an alert; subsequent majority changes create entry/exit alerts at the
+confirming GPS timestamp. Only accepted observations advance the windows. Settings
+changes do not reset geofence state. No geometry interpolation or inferred crossing
+is performed, and overlapping zones are evaluated independently.
+
+Speeding and geofence rules run under the same vehicle gate, before the single
+sample revision increment and immutable snapshot capture. One sample may produce
+multiple alerts. Membership arrays and cumulative alerts travel through the existing
+`VehicleUpdated` event; publication still happens after releasing the gate.
+
+`GET /api/geofences` returns `{ sessionId, geofences }`; the same definitions are
+included in the synchronization response. Vehicle snapshots add `geofenceMemberships`
+with `geofenceId` and a string `state`. Alert common fields are unchanged; speeding
+fields are nullable for geofence alerts, which carry `geofenceId` and `geofenceName`.
+Speeding alerts retain their existing values and field names. Deploy/restart the
+local API and frontend together for this expanded contract.
+
+Angular draws labeled rectangles behind markers using the existing projection,
+shows confirmed membership separately from latest position and renders alerts by
+type. Definitions refresh through REST synchronization; memberships follow vehicle
+revisions. Stable alert IDs and backend session IDs preserve reconnect/reset behavior.
+Initial membership and inclusive rectangle edges remain documented defaults rather
+than additional evaluator confirmations. Route simulation tests verify the existing
+routes traverse both zones without changing speeds or the reporting interval.
 
 ## Communication and startup
 

@@ -30,6 +30,32 @@ describe('TrackingStore live synchronization', () => {
   });
   afterEach(() => { store.stop(); http.verify(); });
 
+  it('recovers geofence membership and alerts on reconnect and replaces definitions after restart', () => {
+    const zone = { id: 'west', name: 'West', minLatitude: 1, maxLatitude: 2, minLongitude: 1, maxLongitude: 2 };
+    const alert = { id: 'entry', vehicleId: 'vehicle-1', type: 'GeofenceEntered',
+      occurredAt: '2026-10-19T12:00:40Z', createdAt: '2026-10-19T12:00:41Z',
+      speedKmh: null, speedLimitKmh: null, speedingDurationSeconds: null, geofenceId: 'west', geofenceName: 'West' };
+    store.start();
+    http.expectOne(TRACKING.vehiclesPath).flush({ ...envelope(0), geofences: [zone] });
+    connection.state$.next('reconnecting');
+    connection.state$.next('connected');
+    const inside = { ...vehicle(5), alerts: [alert], geofenceMemberships: [{ geofenceId: 'west', state: 'Inside' as const }] };
+    connection.updates$.next({ sessionId: 'first', vehicle: inside });
+    http.expectOne(TRACKING.vehiclesPath).flush({ sessionId: 'first', vehicles: [inside], geofences: [zone] });
+    expect(store.geofences()).toEqual([zone]);
+    expect(store.alerts()).toEqual([alert]);
+    expect(store.vehicles()[0].geofenceMemberships?.[0].state).toBe('Inside');
+
+    connection.state$.next('reconnecting');
+    connection.state$.next('connected');
+    const unknown = { ...vehicle(0), geofenceMemberships: [{ geofenceId: 'east', state: 'Unknown' }] };
+    http.expectOne(TRACKING.vehiclesPath).flush({ sessionId: 'second', vehicles: [unknown], geofences: [{ ...zone, id: 'east' }] });
+    connection.updates$.next({ sessionId: 'first', vehicle: inside });
+    expect(store.geofences()[0].id).toBe('east');
+    expect(store.alerts()).toEqual([]);
+    expect(store.vehicles()[0].geofenceMemberships?.[0].state).toBe('Unknown');
+  });
+
   it('merges alert IDs independently of vehicle revision and restores global settings on restart', () => {
     store.start();
     const alert = { id: 'alert-1', vehicleId: 'vehicle-1', type: 'Speeding',

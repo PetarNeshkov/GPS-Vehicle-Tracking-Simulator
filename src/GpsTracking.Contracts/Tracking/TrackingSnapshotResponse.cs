@@ -3,6 +3,7 @@ namespace GpsTracking.Contracts.Tracking;
 public sealed record TrackingSnapshotResponse(
     Guid SessionId,
     IReadOnlyList<VehicleSnapshotResponse> Vehicles,
-    GlobalSettingsResponse? GlobalSettings = null);
+    GlobalSettingsResponse? GlobalSettings = null,
+    IReadOnlyList<GeofenceResponse>? Geofences = null);
 
 public sealed record VehicleUpdatedEvent(Guid SessionId, VehicleSnapshotResponse Vehicle);

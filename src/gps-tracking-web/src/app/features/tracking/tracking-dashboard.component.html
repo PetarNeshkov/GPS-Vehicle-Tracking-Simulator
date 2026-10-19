@@ -14,6 +14,16 @@
       </pattern>
     </defs>
     <rect width="1000" height="400" fill="url(#coordinate-grid)"/>
+    @for (zone of store.geofences(); track zone.id) {
+      <rect class="geofence-region"
+        [attr.x]="x(zone.minLongitude)" [attr.y]="y(zone.maxLatitude)"
+        [attr.width]="x(zone.maxLongitude) - x(zone.minLongitude)"
+        [attr.height]="y(zone.minLatitude) - y(zone.maxLatitude)">
+        <title>{{ zone.name }}</title>
+      </rect>
+      <text [attr.x]="x(zone.minLongitude) + 6" [attr.y]="y(zone.maxLatitude) + 18"
+        class="geofence-label">{{ zone.name }}</text>
+    }
     @for (vehicle of store.vehicles(); track vehicle.id; let index = $index) {
       @if (vehicle.latestSample; as sample) {
         <g [attr.transform]="markerTransform(sample)">
@@ -21,10 +31,11 @@
           <circle r="19" fill="white" [attr.stroke]="colors[index % colors.length]" stroke-width="2"/>
           <path d="M 0 -14 L 9 10 L 0 6 L -9 10 Z" [attr.fill]="colors[index % colors.length]"/>
         </g>
-        <text [attr.x]="x(sample) + 25" [attr.y]="y(sample) + 5" class="marker-label">{{ vehicle.name }}</text>
+        <text [attr.x]="x(sample.longitude) + 25" [attr.y]="y(sample.latitude) + 5" class="marker-label">{{ vehicle.name }}</text>
       }
     }
   </svg>
+  <p>{{ geofence.messages.confirmation }}</p>
 </section>
 
 <section class="vehicle-grid" aria-label="Vehicle tracking details">
@@ -59,6 +70,14 @@
         <p class="waiting">Waiting for GPS data</p>
         <p>Start the simulator to receive this vehicle’s position.</p>
       }
+      <dl aria-label="Confirmed geofence membership">
+        @for (membership of vehicle.geofenceMemberships ?? []; track membership.geofenceId) {
+          <div>
+            <dt>{{ geofenceName(membership.geofenceId) }}</dt>
+            <dd>{{ geofence.states[membership.state] }}</dd>
+          </div>
+        }
+      </dl>
       <app-settings-editor [vehicle]="vehicle" [sessionId]="store.currentSession()" />
     </article>
   }
@@ -74,8 +93,19 @@
   @for (alert of store.alerts(); track alert.id) {
     <article class="vehicle-card">
       <strong>{{ alert.vehicleId }} — {{ alert.type }}</strong>
-      <p>{{ alert.occurredAt | date:'medium' }}: {{ alert.speedKmh | number:'1.0-1' }} km/h,
-        above {{ alert.speedLimitKmh | number:'1.0-1' }} km/h for at least {{ alert.speedingDurationSeconds }} seconds.</p>
+      <p>{{ alert.occurredAt | date:'medium' }}</p>
+      @switch (alert.type) {
+        @case (geofence.alertTypes.speeding) {
+          <p>{{ alert.speedKmh | number:'1.0-1' }} km/h,
+            above {{ alert.speedLimitKmh | number:'1.0-1' }} km/h for at least {{ alert.speedingDurationSeconds }} seconds.</p>
+        }
+        @case (geofence.alertTypes.entered) {
+          <p>{{ geofence.messages.entered }} {{ alert.geofenceName }}.</p>
+        }
+        @case (geofence.alertTypes.exited) {
+          <p>{{ geofence.messages.exited }} {{ alert.geofenceName }}.</p>
+        }
+      }
     </article>
   }
 </section>

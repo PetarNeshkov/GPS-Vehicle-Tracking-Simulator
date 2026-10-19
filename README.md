@@ -1,6 +1,6 @@
 # GPS Vehicle Tracking Simulator
 
-M3 adds speeding alerts and live settings to the simulator, API and Angular dashboard. Two vehicles independently
+M4 adds geofence detection and visualization, alongside speeding alerts and live settings, to the simulator, API and Angular dashboard. Two vehicles independently
 follow deterministic routes, supplying speed and heading at intervals of at least
 10 seconds. Angular receives live vehicle snapshots and displays a simplified
 coordinate map. REST loads initial/reconnected state; regular polling is removed.
@@ -146,8 +146,31 @@ Settings updates use last-write-wins ordering; newer revisions protect displayed
 state. Unsaved form edits survive live updates. Stop duration and global radius
 are validated and saved in M3; their movement/segment effects arrive in M5.
 
-The map uses fixed demo bounds, not a geographic basemap. Geofencing, stop/trip
-detection and raw history display remain future milestones.
+### Demonstrate M4 geofencing
+
+1. Rebuild and start **GPS Tracking — All** in Rider. Open `http://localhost:4200`.
+   Restart both the API and frontend so their expanded snapshot/alert contracts match.
+2. The coordinate map shows the two labeled Sofia rectangles behind the markers.
+   Each vehicle card lists its confirmed membership in each zone.
+3. Initially membership is **Determining membership**. After three GPS samples,
+   the backend establishes Inside/Outside without creating an initial alert.
+4. Let the existing routes run. Both vehicles enter and leave both zones during a
+   loop; automated route checks cover a ten-minute simulation at ten-second steps.
+   No speed settings changes are needed to demonstrate geofencing.
+5. Entry/exit requires two of the latest three observed positions to support the
+   new state. The confirmed membership may lag behind the displayed marker. An
+   edge counts as inside; no crossing is inferred between observed positions.
+6. Entry and exit alerts show the zone name and confirming GPS time. Refresh or
+   reconnect to recover the same history without duplicates. Restarting the API
+   starts a new session with unknown memberships and no alerts.
+
+`GET /api/geofences` returns the session's predefined rectangles. The same definitions
+are included in `GET /api/vehicles`, so the dashboard needs no extra polling request.
+Geofences are startup configuration, not editable settings. The CQRS handlers in
+Application separate reads from writes without MediatR or a separate database.
+
+The map uses fixed demo bounds, not a geographic basemap. Stop/trip detection and
+raw history display remain future milestones.
 
 ## Configuration
 
@@ -167,7 +190,7 @@ duration. The evaluator confirmed a **global** 10-metre default stop radius.
 Radius is configured under `Tracking:GlobalSettings:StopRadiusMeters`; it is no
 longer a vehicle setting. M5 will implement spatial stop detection. The synthetic geofences are
 Sofia West (latitude 42.695–42.700, longitude 23.315–23.320) and Sofia East
-(latitude 42.695–42.700, longitude 23.325–23.330). Geofence rules are deferred to M4.
+(latitude 42.695–42.700, longitude 23.325–23.330). M4 evaluates these rectangles using the documented three-observation majority.
 
 ASP.NET Core and simulator configuration support standard .NET environment
 variables (`__` separates keys) and command-line overrides. For example:

@@ -10,4 +10,5 @@ public sealed record VehicleSnapshot(
     int SampleCount,
     long Revision,
     VehicleSettings? Settings = null,
-    IReadOnlyList<TrackingAlert>? Alerts = null);
+    IReadOnlyList<TrackingAlert>? Alerts = null,
+    IReadOnlyList<GeofenceMembership>? GeofenceMemberships = null);

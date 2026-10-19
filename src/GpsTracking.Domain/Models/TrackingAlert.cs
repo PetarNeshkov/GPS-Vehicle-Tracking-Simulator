@@ -6,6 +6,8 @@ public sealed record TrackingAlert(
     string Type,
     DateTimeOffset OccurredAt,
     DateTimeOffset CreatedAt,
-    double SpeedKmh,
-    double SpeedLimitKmh,
-    int SpeedingDurationSeconds);
+    double? SpeedKmh,
+    double? SpeedLimitKmh,
+    int? SpeedingDurationSeconds,
+    string? GeofenceId = null,
+    string? GeofenceName = null);

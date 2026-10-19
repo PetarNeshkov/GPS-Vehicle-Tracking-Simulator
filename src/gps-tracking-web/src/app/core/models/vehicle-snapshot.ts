@@ -1,3 +1,4 @@
+import { GeofenceMembership } from './geofence';
 import { TrackingAlert, VehicleSettings } from './tracking-settings';
 
 export interface GpsSample {
@@ -9,6 +10,7 @@ export interface GpsSample {
 }
 
 export interface VehicleSnapshot {
+  readonly geofenceMemberships?: readonly GeofenceMembership[];
   readonly settings?: VehicleSettings;
   readonly alerts?: readonly TrackingAlert[];
   readonly id: string;

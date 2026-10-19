@@ -13,9 +13,11 @@ public sealed record AlertResponse(Guid Id,
     string Type,
     DateTimeOffset OccurredAt,
     DateTimeOffset CreatedAt,
-    double SpeedKmh,
-    double SpeedLimitKmh,
-    int SpeedingDurationSeconds);
+    double? SpeedKmh,
+    double? SpeedLimitKmh,
+    int? SpeedingDurationSeconds,
+    string? GeofenceId = null,
+    string? GeofenceName = null);
 
 public sealed record AlertsResponse(Guid SessionId, IReadOnlyList<AlertResponse> Alerts);
 

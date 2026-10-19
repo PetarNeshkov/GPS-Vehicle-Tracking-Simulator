@@ -15,12 +15,14 @@ export interface GlobalSettingsEvent {
 }
 
 export interface TrackingAlert {
+  readonly geofenceId?: string | null;
+  readonly geofenceName?: string | null;
   readonly id: string;
   readonly vehicleId: string;
   readonly type: string;
   readonly occurredAt: string;
   readonly createdAt: string;
-  readonly speedKmh: number;
-  readonly speedLimitKmh: number;
-  readonly speedingDurationSeconds: number;
+  readonly speedKmh: number | null;
+  readonly speedLimitKmh: number | null;
+  readonly speedingDurationSeconds: number | null;
 }

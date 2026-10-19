@@ -21,7 +21,13 @@ public static class TrackingMappingExtensions
                 : null,
             snapshot.LastReceivedAt, snapshot.SampleCount, snapshot.Revision,
             (snapshot.Settings ?? new VehicleSettings()).ToResponse(),
-            (snapshot.Alerts ?? []).Select(alert => alert.ToResponse()).ToArray());
+            (snapshot.Alerts ?? []).Select(alert => alert.ToResponse()).ToArray(),
+            (snapshot.GeofenceMemberships ?? []).Select(membership =>
+                new GeofenceMembershipResponse(membership.GeofenceId, membership.State.ToString())).ToArray());
+
+    public static GeofenceResponse ToResponse(this GeofenceDefinition definition)
+        => new(definition.Id, definition.Name, definition.MinLatitude, definition.MaxLatitude,
+            definition.MinLongitude, definition.MaxLongitude);
 
     public static VehicleSettingsResponse ToResponse(this VehicleSettings settings)
         => new(settings.SpeedLimitKmh, settings.SpeedingDurationSeconds, settings.StopDurationSeconds);
@@ -31,7 +37,7 @@ public static class TrackingMappingExtensions
 
     public static AlertResponse ToResponse(this TrackingAlert alert)
         => new(alert.Id, alert.VehicleId, alert.Type, alert.OccurredAt, alert.CreatedAt,
-            alert.SpeedKmh, alert.SpeedLimitKmh, alert.SpeedingDurationSeconds);
+            alert.SpeedKmh, alert.SpeedLimitKmh, alert.SpeedingDurationSeconds, alert.GeofenceId, alert.GeofenceName);
 
     public static VehicleSettings ToSettings(this UpdateVehicleSettingsRequest request)
         => new() { SpeedLimitKmh = request.SpeedLimitKmh!.Value,

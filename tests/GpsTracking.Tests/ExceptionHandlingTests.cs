@@ -66,6 +66,8 @@ public sealed class ExceptionHandlingTests
         public SampleAcceptance Append(GpsSample sample, DateTimeOffset receivedAt)
             => throw new InvalidOperationException(InternalFailureMessage);
 
+        public IReadOnlyList<GeofenceDefinition> GetGeofences() => [];
+
         public IReadOnlyList<VehicleSnapshot> GetSnapshots()
             => throw new InvalidOperationException(InternalFailureMessage);
     }

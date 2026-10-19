@@ -1,3 +1,4 @@
+import { Geofence } from '../models/geofence';
 import {inject, Injectable, OnDestroy, signal} from '@angular/core';
 import {Subscription, tap, timeout} from 'rxjs';
 import {TRACKING} from '../constants/tracking.constants';
@@ -28,6 +29,7 @@ export class TrackingStore implements OnDestroy {
 
   private readonly buffered = new Map<string, VehicleUpdatedEvent>();
   private readonly status = signal<string>(REALTIME.status.stopped);
+  private readonly geofenceDefinitions = signal<readonly Geofence[]>([]);
   private readonly global = signal<GlobalSettings | null>(null);
   private readonly alertHistory = signal<readonly TrackingAlert[]>([]);
   private readonly activeSession = signal<string | undefined>(undefined);
@@ -37,6 +39,7 @@ export class TrackingStore implements OnDestroy {
   readonly connectionError = this.error.asReadonly();
   readonly hasLoaded = this.loaded.asReadonly();
   readonly connectionStatus = this.status.asReadonly();
+  readonly geofences = this.geofenceDefinitions.asReadonly();
   readonly globalSettings = this.global.asReadonly();
   readonly alerts = this.alertHistory.asReadonly();
   readonly currentSession = this.activeSession.asReadonly();
@@ -129,6 +132,7 @@ export class TrackingStore implements OnDestroy {
 
         this.sessionId = snapshot.sessionId;
         this.activeSession.set(snapshot.sessionId);
+        this.geofenceDefinitions.set(snapshot.geofences ?? []);
         if (!sameSession) {
           this.alertHistory.set([]);
           this.global.set(null);

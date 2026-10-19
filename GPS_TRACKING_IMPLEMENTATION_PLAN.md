@@ -82,7 +82,7 @@ positive durations/radius and known vehicle IDs. Heading 360 is accepted.
 Raw observations are independent from derived route membership.
 
 Endpoints (ingestion, snapshots, alerts, settings and the live hub are implemented
-through M3; history, segments and geofence reads remain future work):
+through M4; history and segments remain future work):
 
 - `POST /api/vehicles/{id}/samples`
 - `GET /api/vehicles`
@@ -175,7 +175,13 @@ Explicit clarification acceptance checks:
   - [x] Global radius model, validation and settings endpoints
   - [x] Live settings forms, alerts and revision/session synchronization
   - [x] Focused backend/frontend checks and startup/demo documentation
-- [ ] M4 — Geofencing
+- [x] CQRS prerequisite — Separate command/query handlers; preserve M3 behavior
+- [x] M4 — Geofencing
+  - [x] Three-observation rule and independent membership per vehicle/zone
+  - [x] Atomic processing, membership snapshots and entry/exit alert history
+  - [x] Geofence definitions API and frontend synchronization
+  - [x] SVG rectangles, membership display and type-specific alerts
+  - [x] Focused tests, real SignalR verification and Rider demo documentation
 - [ ] M5 — Global-radius stops and confirmed route boundaries
 - [ ] M6 — Scenarios and UI completion
 - [ ] M7 — Integration and documentation
@@ -473,3 +479,77 @@ was not automated. Stop duration and global radius can be saved, but spatial sto
 detection remains M5. Geofencing remains M4. No subsequent milestone implemented.
 
 Next milestone: **M4**, only after review/request.
+
+### CQRS refactoring before M4 — completed
+
+Following the user's architecture preference, lightweight CQRS was implemented in
+Application before M4 functionality. The scope below records the agreed refactoring;
+it was verified independently against all 40 existing M3 backend tests.
+
+- Separate write use cases into command handlers: submit a sample, update vehicle
+  settings and update global settings.
+- Separate read use cases into query handlers: retrieve vehicle snapshots, one
+  vehicle's settings, alert history and global settings.
+- Move orchestration out of the combined `TrackingService` into these handlers.
+  Controllers inject the relevant handlers directly and retain transport mapping
+  and existing `ToOkResult`/error response conventions.
+- Keep business rules in Domain and storage implementations in Infrastructure.
+  Use the same in-memory store for reads and writes; CQRS does not require separate
+  databases, event sourcing, a broker or MediatR. Add no dispatch framework.
+- Preserve atomic sample/settings processing, session identities, revision ordering,
+  alert history and publication after releasing storage locks. Commands may return
+  the existing result snapshots needed by clients.
+- Preserve HTTP contracts and frontend behavior. Run existing backend/frontend
+  regression checks and adapt focused handler tests before declaring the refactor
+  complete. Add future handlers only when their milestone is implemented.
+
+### 19 October 2026 — CQRS added to the architecture plan
+
+Recorded the user's preference for CQRS as a focused refactoring step before M4.
+The current code still uses `TrackingService`; no application code or runtime
+behavior changed in this update. M3 remains complete and M4 remains pending.
+
+### 19 October 2026 — CQRS and M4 completed; awaiting review
+
+Replaced the combined TrackingService with directly injected command/query handlers
+in Application. Existing HTTP contracts and result mapping were preserved during
+the refactoring, and all 40 M3 backend tests passed before geofencing was added.
+No MediatR, dispatch framework or separate storage introduced.
+
+Added a plain C# geofence rule per vehicle/rectangle. Membership starts Unknown;
+three accepted observations establish the rolling majority without an alert.
+Later majority changes generate entry/exit alerts at the confirming GPS timestamp.
+Edges count as inside. Rejected samples do not affect the rule; overlapping zones
+and vehicles remain independent. No crossing interpolation is performed.
+
+Geofencing runs alongside speeding inside the same vehicle gate. A sample may
+produce several alerts but increments revision once. Snapshots include membership
+and cumulative alerts; publication remains outside the lock. GET /api/geofences
+and the existing synchronization snapshot expose startup definitions. Geofence
+alerts add zone ID/name and use null speeding-specific fields; speeding alerts
+retain existing fields and values. No separate event stream was added.
+
+Angular displays labeled SVG rectangles, confirmed membership and type-specific
+alert descriptions. Definitions load through the existing REST synchronization;
+membership and history reuse revision/session handling. A visible note explains
+that confirmed membership may lag behind the latest marker. Existing simulator
+routes already demonstrate both zone entries/exits, so their movement is unchanged.
+
+Checks actually executed:
+
+| Check | Result |
+| --- | --- |
+| CQRS prerequisite regression | 40 existing backend tests passed. |
+| Backend Release tests after M4 | 55 passed, covering boundaries, initialization, majority changes, no interpolation, independent/overlapping zones, combined speeding/geofence alerts, rejected samples, HTTP refresh and backend reset. |
+| Deterministic simulator verification | Both existing routes produce entries and exits for both zones within 600 simulated seconds at 10-second steps. Included in backend tests. |
+| Frontend ChromeHeadless tests | 13 passed, including SVG projection, alert rendering, reconnect recovery and new-session definition/membership reset. |
+| Frontend production build | Passed; approximately 335 kB initial raw bundle. |
+| Real API and SignalR client, isolated port 5091 | Received eight revisions with entry/exit alerts and confirmed memberships matching REST history. Temporary API stopped afterward. |
+| `git diff --check` | Passed. |
+
+README includes Rider startup and M4 demonstration steps; architecture notes explain
+CQRS, rule state, contract additions and confirmation behavior. Rider GUI execution
+was not automated. The documented geofence defaults remain implementation choices.
+Stop/segment processing and history APIs remain M5. No later milestone implemented.
+
+Next milestone: **M5**, only after review/request.

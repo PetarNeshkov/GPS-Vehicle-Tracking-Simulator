@@ -1,4 +1,5 @@
 import {Component, inject, OnDestroy, OnInit} from '@angular/core';
+import { GEOFENCE } from '../../core/constants/geofence.constants';
 import {TRACKING} from '../../core/constants/tracking.constants';
 import {GpsSample} from '../../core/models/vehicle-snapshot';
 import {TrackingStore} from '../../core/services/tracking-store.service';
@@ -11,6 +12,7 @@ import {TrackingStore} from '../../core/services/tracking-store.service';
 })
 export class TrackingDashboardComponent implements OnInit, OnDestroy {
   protected readonly store = inject(TrackingStore);
+  protected readonly geofence = GEOFENCE;
   protected readonly colors = TRACKING.colors;
 
   ngOnInit(): void {
@@ -21,29 +23,33 @@ export class TrackingDashboardComponent implements OnInit, OnDestroy {
     this.store.stop();
   }
 
-  protected x(sample: GpsSample): number {
+  protected x(longitude: number): number {
     const view = TRACKING.view;
 
-    const longitudeOffset = sample.longitude - view.minLongitude;
+    const longitudeOffset = longitude - view.minLongitude;
     const longitudeRange = view.maxLongitude - view.minLongitude;
     const horizontalRatio = longitudeOffset / longitudeRange;
 
     return horizontalRatio * view.width;
   }
 
-  protected y(sample: GpsSample): number {
+  protected y(latitude: number): number {
     const view = TRACKING.view;
 
-    const latitudeOffset = view.maxLatitude - sample.latitude;
+    const latitudeOffset = view.maxLatitude - latitude;
     const latitudeRange = view.maxLatitude - view.minLatitude;
     const verticalRatio = latitudeOffset / latitudeRange;
 
     return verticalRatio * view.height;
   }
 
+  protected geofenceName(id: string): string {
+    return this.store.geofences().find(definition => definition.id === id)?.name ?? id;
+  }
+
   protected markerTransform(sample: GpsSample): string {
-    const x = this.x(sample);
-    const y = this.y(sample);
+    const x = this.x(sample.longitude);
+    const y = this.y(sample.latitude);
     const heading = sample.heading % 360;
 
     return `translate(${x}, ${y}) rotate(${heading})`;

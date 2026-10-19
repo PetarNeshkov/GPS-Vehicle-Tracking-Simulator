@@ -1,5 +1,6 @@
 using GpsTracking.Api.Realtime;
 using GpsTracking.Application.Tracking;
+using GpsTracking.Application.Tracking.Commands;
 using GpsTracking.Contracts.Tracking;
 using GpsTracking.Domain.Models;
 using GpsTracking.Infrastructure.Storage;
@@ -18,7 +19,7 @@ public sealed class TrackingPublicationTests
         var session = new TrackingSession();
         var publisher = new SignalRTrackingPublisher(new TestHubContext(client), session,
             NullLogger<SignalRTrackingPublisher>.Instance);
-        var service = new TrackingService(store, TimeProvider.System, publisher);
+        var service = new SubmitSampleHandler(store, TimeProvider.System, publisher);
         var command = new SubmitSampleCommand("vehicle-1", DateTimeOffset.UtcNow, 42, 23, 85, 360);
 
         client.BeforeSend = async () =>
@@ -27,21 +28,21 @@ public sealed class TrackingPublicationTests
             var snapshots = await Task.Run(store.GetSnapshots).WaitAsync(TimeSpan.FromSeconds(2));
             Assert.Equal(1, snapshots[0].Revision);
         };
-        Assert.Equal(SampleAcceptance.Accepted, (await service.SubmitSampleAsync(command)).Acceptance);
+        Assert.Equal(SampleAcceptance.Accepted, (await service.HandleAsync(command)).Acceptance);
         var published = Assert.IsType<VehicleUpdatedEvent>(client.Payload);
 
         Assert.Equal(session.Id, published.SessionId);
         Assert.Equal(1, published.Vehicle.Revision);
         Assert.Equal(TrackingHubContract.VehicleUpdated, client.Method);
-        Assert.Equal(SampleAcceptance.TimestampNotNewer, (await service.SubmitSampleAsync(command)).Acceptance);
+        Assert.Equal(SampleAcceptance.TimestampNotNewer, (await service.HandleAsync(command)).Acceptance);
         Assert.Equal(1, client.Calls);
 
         client.BeforeSend = () => throw new InvalidOperationException("Simulated transport failure");
         Assert.Equal(SampleAcceptance.Accepted,
-            (await service.SubmitSampleAsync(command with { Timestamp = command.Timestamp.AddSeconds(10) })).Acceptance);
+            (await service.HandleAsync(command with { Timestamp = command.Timestamp.AddSeconds(10) })).Acceptance);
         Assert.Equal(2, store.GetSnapshots()[0].Revision);
 
-        var changedGlobal = await service.UpdateGlobalSettingsAsync(new GlobalSettings
+        var changedGlobal = await new UpdateGlobalSettingsHandler(store, publisher).HandleAsync(new GlobalSettings
         {
             StopRadiusMeters = 20
         });

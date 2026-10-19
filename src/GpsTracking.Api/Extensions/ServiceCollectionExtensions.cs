@@ -2,7 +2,8 @@ using GpsTracking.Api.Configuration;
 using GpsTracking.Api.Constants;
 using GpsTracking.Api.Realtime;
 using GpsTracking.Application.Abstractions;
-using GpsTracking.Application.Tracking;
+using GpsTracking.Application.Tracking.Commands;
+using GpsTracking.Application.Tracking.Queries;
 using GpsTracking.Infrastructure.Storage;
 using Microsoft.Extensions.Options;
 
@@ -23,8 +24,16 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<ITrackingStore>(provider => new InMemoryTrackingStore(
             provider.GetRequiredService<IOptions<TrackingOptions>>().Value.Vehicles,
-            provider.GetRequiredService<IOptions<TrackingOptions>>().Value.GlobalSettings));
-        services.AddSingleton<TrackingService>();
+            provider.GetRequiredService<IOptions<TrackingOptions>>().Value.GlobalSettings,
+            provider.GetRequiredService<IOptions<TrackingOptions>>().Value.Geofences));
+        services.AddSingleton<SubmitSampleHandler>();
+        services.AddSingleton<GetSnapshotsHandler>();
+        services.AddSingleton<GetVehicleSettingsHandler>();
+        services.AddSingleton<GetAlertsHandler>();
+        services.AddSingleton<GetGeofencesHandler>();
+        services.AddSingleton<GetGlobalSettingsHandler>();
+        services.AddSingleton<UpdateVehicleSettingsHandler>();
+        services.AddSingleton<UpdateGlobalSettingsHandler>();
         services.AddSingleton<IValidateOptions<TrackingOptions>, TrackingOptionsValidator>();
         services.AddOptions<TrackingOptions>()
             .Bind(configuration.GetRequiredSection(TrackingOptions.SectionName))

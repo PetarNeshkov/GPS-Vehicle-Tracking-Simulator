@@ -9,14 +9,17 @@ public sealed class InMemoryTrackingStore : ITrackingStore
 {
     // The dictionary is constructed once. Each entry owns its mutation gate.
     private readonly Dictionary<string, VehicleSession> sessions;
+    private readonly IReadOnlyList<GeofenceDefinition> geofences;
     private readonly object globalGate = new();
     private GlobalSettingsSnapshot globalSettings;
 
-    public InMemoryTrackingStore(IEnumerable<VehicleDefinition> vehicles, GlobalSettings? settings = null)
+    public InMemoryTrackingStore(IEnumerable<VehicleDefinition> vehicles, GlobalSettings? settings = null,
+        IEnumerable<GeofenceDefinition>? geofenceDefinitions = null)
     {
+        geofences = Array.AsReadOnly((geofenceDefinitions ?? []).ToArray());
         globalSettings = new GlobalSettingsSnapshot(settings ?? new GlobalSettings(), 0);
         sessions = vehicles.ToDictionary(vehicle => vehicle.Id,
-            vehicle => new VehicleSession(vehicle), StringComparer.Ordinal);
+            vehicle => new VehicleSession(vehicle, geofences), StringComparer.Ordinal);
     }
 
     public SampleAcceptance Append(GpsSample sample, DateTimeOffset receivedAt)
@@ -43,11 +46,24 @@ public sealed class InMemoryTrackingStore : ITrackingStore
             {
                 session.Alerts.Add(alert);
             }
+
+            foreach (var rule in session.Geofences)
+            {
+                var geofenceAlert = rule.Observe(sample, receivedAt);
+                if (geofenceAlert is not null)
+                {
+                    session.Alerts.Add(geofenceAlert);
+                }
+            }
+
             session.Revision++;
 
             return new(SampleAcceptance.Accepted, Snapshot(session));
         }
     }
+
+    public IReadOnlyList<GeofenceDefinition> GetGeofences()
+        => geofences;
 
     public IReadOnlyList<VehicleSnapshot> GetSnapshots()
     {
@@ -121,10 +137,11 @@ public sealed class InMemoryTrackingStore : ITrackingStore
         => new(session.Vehicle.Id, session.Vehicle.Name,
             session.History.Count == 0 ? null : session.History[^1],
             session.LastReceivedAt, session.History.Count, session.Revision, session.Settings,
-            session.Alerts.ToArray());
+            session.Alerts.ToArray(), session.Geofences.Select(rule => rule.Membership).ToArray());
 
-    private sealed class VehicleSession(VehicleDefinition vehicle)
+    private sealed class VehicleSession(VehicleDefinition vehicle, IReadOnlyList<GeofenceDefinition> geofences)
     {
+        public IReadOnlyList<GeofenceRule> Geofences { get; } = geofences.Select(definition => new GeofenceRule(definition)).ToArray();
         public object Gate { get; } = new();
         public VehicleDefinition Vehicle { get; } = vehicle;
         public List<GpsSample> History { get; } = [];

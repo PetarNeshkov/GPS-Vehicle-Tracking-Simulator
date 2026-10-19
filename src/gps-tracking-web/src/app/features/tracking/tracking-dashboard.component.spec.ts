@@ -46,4 +46,38 @@ describe('TrackingDashboardComponent', () => {
     fixture.destroy();
     http.verify();
   }));
+
+  it('projects labeled rectangles and renders confirmed membership and type-specific alerts', fakeAsync(() => {
+    const fixture = TestBed.createComponent(TrackingDashboardComponent);
+    const http = TestBed.inject(HttpTestingController);
+    fixture.detectChanges();
+    tick(0);
+    const base = { vehicleId: 'vehicle-1', occurredAt: '2026-10-19T12:00:40Z', createdAt: '2026-10-19T12:00:41Z' };
+    http.expectOne(TRACKING.vehiclesPath).flush({ sessionId: 'session',
+      geofences: [{ id: 'west', name: 'West zone', minLatitude: 42.695, maxLatitude: 42.700,
+        minLongitude: 23.315, maxLongitude: 23.320 }],
+      vehicles: [{ id: 'vehicle-1', name: 'First', latestSample: null, lastReceivedAt: null, sampleCount: 5, revision: 5,
+        geofenceMemberships: [{ geofenceId: 'west', state: 'Inside' }],
+        alerts: [
+          { ...base, id: 'speed', type: 'Speeding', speedKmh: 85, speedLimitKmh: 80, speedingDurationSeconds: 30 },
+          { ...base, id: 'entry', type: 'GeofenceEntered', geofenceId: 'west', geofenceName: 'West zone',
+            speedKmh: null, speedLimitKmh: null, speedingDurationSeconds: null },
+          { ...base, id: 'exit', type: 'GeofenceExited', geofenceId: 'west', geofenceName: 'West zone',
+            speedKmh: null, speedLimitKmh: null, speedingDurationSeconds: null }
+        ] }]
+    });
+    fixture.detectChanges();
+    const rectangle: SVGRectElement = fixture.nativeElement.querySelector('.geofence-region');
+    expect(Number(rectangle.getAttribute('x'))).toBeCloseTo(200);
+    expect(Number(rectangle.getAttribute('y'))).toBeCloseTo(75);
+    expect(Number(rectangle.getAttribute('width'))).toBeCloseTo(200);
+    expect(Number(rectangle.getAttribute('height'))).toBeCloseTo(250);
+    const text: string = fixture.nativeElement.textContent;
+    expect(text).toContain('Inside');
+    expect(text).toContain('Entered West zone.');
+    expect(text).toContain('Exited West zone.');
+    expect(text).toContain('above 80 km/h for at least 30 seconds');
+    fixture.destroy();
+    http.verify();
+  }));
 });
