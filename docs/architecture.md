@@ -16,7 +16,7 @@ flowchart TD
 
 Arrows represent C# project references. Domain and Contracts have no project or
 package dependencies. Application has no framework dependencies. Infrastructure
-implements application storage boundaries. SignalR types will
+implements application storage boundaries. SignalR types
 stay in the API. The simulator cannot access backend state or domain rules.
 
 Application owns `TrackingService` and `ITrackingStore`. Infrastructure supplies
@@ -30,13 +30,14 @@ HTTP verb and resource-specific suffix attributes. URLs remain `/api/health`,
 Response formatters select JSON or ProblemDetails content types without a global
 `Produces` override. Shared client URL constants remain in Contracts.
 The sample controller maps requests to an application command and delegates to
-`TrackingService.SubmitSample`. That operation validates domain sample creation
+`TrackingService.SubmitSampleAsync`. That operation validates domain sample creation
 and returns a typed acceptance result. API mapping extensions translate snapshots
 and acceptance results into transport DTOs and HTTP responses. Domain validation
 bounds/messages and API response messages live in constants owned by their layers.
 `TaskExtensions.ToOkResult` supports both plain values and asynchronous results.
-Both GET controllers use it; the in-memory path stays synchronous without artificial
-task wrappers. Ingestion retains 204 and errors retain their ProblemDetails status.
+Both GET controllers use it. Reads stay synchronous; ingestion awaits best-effort
+publication after storing a sample. Ingestion retains 204 and errors retain their
+ProblemDetails status.
 Startup tracking validation messages and count/threshold limits live in
 `TrackingValidationConstants`; coordinate limits reuse domain constants.
 The built-in `UseExceptionHandler` middleware runs before CORS and controllers,
@@ -106,20 +107,21 @@ persistence remains outside the agreed scope.
   and two distinct IDs. It runs independent asynchronous loops, advancing routes
   by monotonic elapsed time with UTC timestamps. HTTP timeout is five seconds;
   failed samples are skipped without retries or catch-up bursts.
-- Angular uses typed HTTP services and a signal-backed store. Two-second polling
-  allows one outstanding request, with a five-second timeout. Failures preserve
-  displayed data; successful polls clear errors. SVG markers use distinct colors
+- Angular uses typed HTTP services, a SignalR connection service and a signal-backed
+  store. Initial connection and reconnection trigger REST synchronization with a
+  five-second timeout. Failures preserve displayed data and trigger retries.
+  There is no regular snapshot polling. SVG markers use distinct colors
   and heading arrows within fixed demo bounds. No stop status is inferred.
 
 Frontend feature services use the shared `ApiService` in `core/services` for
 GET/POST/PUT/PATCH/DELETE requests. `TrackingApiService` owns tracking endpoints and
 response types. The shared wrapper preserves HttpClient errors and body handling,
-including FormData, without forcing headers or adding retries. Polling and its
+including FormData, without forcing headers or adding retries. Synchronization and its
 timeout/error presentation remain owned by `TrackingStore`. Extend this wrapper
 when a future feature requires additional HTTP capabilities.
 Frontend application error messages live in `core/constants/error-messages.constants.ts`.
 Use named constants for validation messages and limits when forms are introduced;
-the current dashboard has no form validators. Polling timeouts and map bounds
+the current dashboard has no form validators. Request timeouts and map bounds
 already live in tracking constants. Backend error bodies remain unmodified by
 the shared HTTP wrapper.
 
@@ -135,6 +137,30 @@ sample. Snapshots are individually consistent, not a transaction across vehicles
 Raw history has no public endpoint in M1. Backend restart clears the session;
 browser refresh reads the existing session.
 
+### M2 live synchronization
+
+`AppendWithSnapshot` captures the accepted vehicle revision under the storage lock.
+Application publishes that immutable snapshot through `ITrackingPublisher` after
+the lock is released. The API's SignalR adapter broadcasts `VehicleUpdated` through
+`IHubContext<TrackingHub>`, with a five-second cancellation timeout, and logs transport
+failures without undoing telemetry. There is no durable event queue or replay.
+
+`GET /api/vehicles` returns `{ sessionId, vehicles }`; a live event contains
+`{ sessionId, vehicle }`. The process-lifetime session UUID is shared by REST and
+SignalR. Revisions are comparable only within one session. This changes the M1
+snapshot response shape; simulator POST payloads are unchanged.
+
+The frontend registers handlers before connecting, connects before reading REST,
+and buffers the newest event per vehicle/session while REST is pending. It merges
+only newer revisions, replaces state when REST identifies a new session, and
+ignores events from another session. Reconnection cancels old requests and starts
+fresh synchronization. Failed REST requests retry after two seconds; initial
+connection failures retry separately from SignalR's automatic reconnect policy
+(0, 2, 5, then 10 seconds repeatedly). Stop cancels requests/timers and detaches
+event handlers; identity/generation guards ignore obsolete asynchronous callbacks.
+Live connection state is separate from vehicle freshness; M2 does not infer stops
+or mark stationary data as stale.
+
 ## Communication and startup
 
 Each application starts independently. The API no longer launches, builds or
@@ -144,9 +170,10 @@ but its JavaScript project does not install or build npm dependencies during a
 
 Local HTTP is deliberate: API `http://localhost:5078`, frontend
 `http://localhost:4200`. The Angular development proxy forwards `/api/**` and
-reserves `/hubs/**` with WebSocket forwarding for M2. There is no SignalR hub yet.
-An explicit frontend-origin CORS policy also permits direct local API calls.
-There are no credentials or external map keys. Hosted deployment is out of scope.
+forwards `/hubs/**` WebSocket traffic to the live tracking hub. The explicit
+frontend-origin CORS policy permits credentials for SignalR's default transport
+behavior; wildcard origins are not allowed. No authentication or external map keys
+are configured. Hosted deployment is out of scope.
 
 Simulator ingestion and snapshots use HTTP; future history/settings use REST;
 live publication uses SignalR in M2. A broker, database, authentication, MediatR,
@@ -162,6 +189,8 @@ two-vehicle assessment. Business rules will be ordinary C#.
   resolved dependencies. `dotnet restore --locked-mode` checks reproducibility.
 - Angular/CLI/build tooling 22.2.3, TypeScript 6.0.3, Node 24.19.0 and npm 11.17.0
   are the selected frontend baseline. Use `npm ci` with the committed lockfile.
+- SignalR's JavaScript client is pinned to 10.0.11. The server implementation is
+  supplied by the ASP.NET Core shared framework, without another server package.
 - The starter was small enough to adapt its NgModule/bootstrap configuration
   directly. The new `@angular/build` tooling replaces the deprecated Webpack
   package; the existing Karma/Jasmine test remains.

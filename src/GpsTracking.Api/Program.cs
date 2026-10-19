@@ -1,5 +1,7 @@
 using GpsTracking.Api.Constants;
 using GpsTracking.Api.Extensions;
+using GpsTracking.Api.Realtime;
+using GpsTracking.Contracts.Tracking;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +17,7 @@ if (app.Environment.IsDevelopment())
 app.UseExceptionHandler();
 app.UseCors(ApiConstants.FrontendCorsPolicy);
 app.MapControllers();
+app.MapHub<TrackingHub>(TrackingHubContract.Path);
 
 app.Run();
 

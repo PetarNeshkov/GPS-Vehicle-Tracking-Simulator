@@ -1,5 +1,6 @@
 using GpsTracking.Api.Configuration;
 using GpsTracking.Api.Constants;
+using GpsTracking.Api.Realtime;
 using GpsTracking.Application.Abstractions;
 using GpsTracking.Application.Tracking;
 using GpsTracking.Infrastructure.Storage;
@@ -16,6 +17,9 @@ public static class ServiceCollectionExtensions
         services.AddControllers();
         services.AddOpenApi();
         services.AddProblemDetails();
+        services.AddSignalR();
+        services.AddSingleton<TrackingSession>();
+        services.AddSingleton<ITrackingPublisher, SignalRTrackingPublisher>();
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<ITrackingStore>(provider => new InMemoryTrackingStore(
             provider.GetRequiredService<IOptions<TrackingOptions>>().Value.Vehicles));
@@ -35,7 +39,7 @@ public static class ServiceCollectionExtensions
         }
 
         services.AddCors(options => options.AddPolicy(ApiConstants.FrontendCorsPolicy, policy =>
-            policy.WithOrigins(frontendOrigin).AllowAnyHeader().AllowAnyMethod()));
+            policy.WithOrigins(frontendOrigin).AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
 
         return services;
     }

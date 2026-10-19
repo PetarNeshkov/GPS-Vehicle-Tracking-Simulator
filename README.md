@@ -1,9 +1,10 @@
 # GPS Vehicle Tracking Simulator
 
-M1 connects the simulator, API and Angular dashboard. Two vehicles independently
+M2 connects the simulator, API and Angular dashboard with live SignalR updates. Two vehicles independently
 follow deterministic routes, supplying speed and heading at intervals of at least
-10 seconds. Angular polls every two seconds and displays a simplified coordinate
-map. Tracking state lives in the backend process.
+10 seconds. Angular receives live vehicle snapshots and displays a simplified
+coordinate map. REST loads initial/reconnected state; regular polling is removed.
+Tracking state lives in the backend process.
 
 ## Prerequisites
 
@@ -64,7 +65,8 @@ Both hosts validate configuration at startup and emit standard lifecycle/error
 logs. The simulator sends an initial sample, then waits at least 10 seconds between
 reports. Failed deliveries are logged and skipped; later samples continue normally.
 The dashboard retains its latest data during connection failures and recovers on
-a successful poll. SignalR is reserved for M2.
+reconnection and REST synchronization. Connection status does not indicate whether
+the simulator is running; stopping it leaves the latest positions visible.
 
 Verify the API directly and through the frontend proxy:
 
@@ -74,8 +76,9 @@ Invoke-RestMethod http://localhost:4200/api/health
 ```
 
 Both return `status: healthy`. The development OpenAPI document is available at
-`http://localhost:5078/openapi/v1.json`. `/hubs/**` forwarding is configured for M2;
-there is no live hub or real-time connection to verify yet.
+`http://localhost:5078/openapi/v1.json`. `/hubs/tracking` carries live updates through
+the frontend proxy. `GET /api/vehicles` now returns `{ sessionId, vehicles }` rather
+than a bare array; both REST snapshots and events identify the backend session.
 
 ## Rider
 
@@ -95,25 +98,35 @@ there is no live hub or real-time connection to verify yet.
 The shared configurations live in `.run/` and use project-relative paths and
 Rider's configured Node interpreter. If they do not appear immediately, reload
 the solution. The individual API, frontend and simulator configurations remain available.
-No startup ordering is required: frontend polling recovers when the API is ready,
+No startup ordering is required: frontend connection attempts retry until the API is ready,
 and a failed initial simulator delivery is followed by a fresh sample on its next interval.
 Avoid starting a second copy while ports 5078 or 4200 are already in use.
 
-### Verify M1 in Rider
+### Verify M2 in Rider
 
 1. Start API and frontend first: both cards should be waiting for GPS data.
-   `GET http://localhost:5078/api/vehicles` returns two empty snapshots.
+   `GET http://localhost:5078/api/vehicles` returns a session ID and two empty snapshots.
 2. Start the simulator: two colored markers and cards appear, with speeds of 42
    and 66 km/h. After roughly 10 seconds coordinates, timestamps and sample counts
    change independently. The arrows use supplied heading.
 3. Refresh the browser: sample counts and latest positions remain in the backend.
 4. Stop the API: the dashboard shows a connection error and retains its last data.
-   Restart it: polling recovers; the new session fills as fresh samples arrive.
+   Restart it: SignalR reconnects and REST replaces the old session; fresh samples
+   are accepted even though their revisions restart from zero.
 5. Stop the simulator and restart the API to inspect the empty session reliably.
 6. Run `GpsTracking.Tests` through Rider's test runner. Run the frontend test
    command above in Rider's terminal; Chrome is required.
+7. In browser Network tools, inspect `/hubs/tracking` and its `VehicleUpdated`
+   messages. There should be one REST snapshot request after connection, another
+   after reconnection, and no periodic two-second snapshot requests. Failed REST
+   synchronization retries after two seconds until successful.
 
-The map uses fixed demo bounds, not a geographic basemap. M1 does not include
+Run `npm ci` after pulling M2 to install the pinned SignalR client. Restart the API
+and frontend together because the snapshot response shape changed. If a running
+Debug process locks build output, stop it before rebuilding, or run tests with
+`--configuration Release`.
+
+The map uses fixed demo bounds, not a geographic basemap. M2 does not include
 alert rules, stops/trips, history display or editable settings.
 
 ## Configuration
@@ -127,7 +140,7 @@ elapsed time, carrying distance across vertices of its closed local path.
 | `src/GpsTracking.Api/appsettings.json` | Two vehicle seeds and their initial settings; two rectangular Sofia demo zones; permitted frontend origin. |
 | `src/GpsTracking.Api/Properties/launchSettings.json` | Development API address, port 5078. |
 | `src/GpsTracking.Simulator/appsettings.json` | Backend URL, two matching vehicle IDs and reporting interval. |
-| `src/gps-tracking-web/src/proxy.conf.cjs` | `/api/**` and future `/hubs/**` forwarding; backend override via `GPS_TRACKING_API_URL`. |
+| `src/gps-tracking-web/src/proxy.conf.cjs` | `/api/**` and `/hubs/**` forwarding; backend override via `GPS_TRACKING_API_URL`. |
 
 Each vehicle starts with 80 km/h, 30-second speeding duration and 180-second stop
 duration. The evaluator confirmed a **global** 10-metre default stop radius.

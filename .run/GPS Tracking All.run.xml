@@ -1,0 +1,8 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="GPS Tracking — All" type="CompoundRunConfigurationType">
+    <toRun name="GPS Tracking API" type="LaunchSettings" />
+    <toRun name="GPS Tracking Frontend" type="js.build_tools.npm" />
+    <toRun name="GPS Tracking Simulator" type="LaunchSettings" />
+    <method v="2" />
+  </configuration>
+</component>

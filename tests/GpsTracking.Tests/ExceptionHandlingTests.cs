@@ -51,6 +51,9 @@ public sealed class ExceptionHandlingTests
 
     private sealed class FailingTrackingStore : ITrackingStore
     {
+        public SampleAppendResult AppendWithSnapshot(GpsSample sample, DateTimeOffset receivedAt)
+            => throw new InvalidOperationException(InternalFailureMessage);
+
         public SampleAcceptance Append(GpsSample sample, DateTimeOffset receivedAt)
             => throw new InvalidOperationException(InternalFailureMessage);
 

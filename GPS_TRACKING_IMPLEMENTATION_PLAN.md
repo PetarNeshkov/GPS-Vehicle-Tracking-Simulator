@@ -81,7 +81,7 @@ Validate finite coordinate/speed/heading values, bounds, nonnegative speed,
 positive durations/radius and known vehicle IDs. Heading 360 is accepted.
 Raw observations are independent from derived route membership.
 
-Endpoints (only sample ingestion and snapshots are implemented in M1):
+Endpoints (sample ingestion, snapshots and the live hub are implemented through M2):
 
 - `POST /api/vehicles/{id}/samples`
 - `GET /api/vehicles`
@@ -89,7 +89,12 @@ Endpoints (only sample ingestion and snapshots are implemented in M1):
 - `GET /api/alerts` and `/api/geofences`
 - `GET`/`PUT /api/vehicles/{id}/settings`
 - `GET`/`PUT /api/settings` for global settings, initially `StopRadiusMeters`
-- `/hubs/tracking` in M2
+- `/hubs/tracking` for `VehicleUpdated` events
+
+M2 changes `GET /api/vehicles` from an array to `{ sessionId, vehicles }`. Events
+contain `{ sessionId, vehicle }`. The session UUID belongs to one backend lifetime;
+frontend revision comparisons reset when REST synchronization identifies a new
+session. Simulator POST bodies are unchanged. Update frontend and backend together.
 
 M3 will move `StopRadiusMeters` out of `VehicleSettings` and the two vehicle seed
 settings into global tracking settings, defaulting to 10. Validate a finite,
@@ -159,7 +164,11 @@ Explicit clarification acceptance checks:
   - [x] M1.4 — Independent simulator loops and closed demo routes.
   - [x] M1.5 — Angular polling, coordinate map and tracking cards.
   - [x] M1.6 — Focused tests, live checks and startup documentation.
-- [ ] M2 — Live updates and synchronization
+- [x] M2 — Live updates and synchronization
+  - [x] M2.1 — Session-aware snapshot/event contracts and atomic snapshot capture.
+  - [x] M2.2 — Application publication boundary and API SignalR adapter/hub.
+  - [x] M2.3 — Frontend connection lifecycle, buffered synchronization and revision merging.
+  - [x] M2.4 — Failure/reconnect tests, live restart check and Rider documentation.
 - [ ] M3 — Speeding, per-vehicle settings and global radius settings
 - [ ] M4 — Geofencing
 - [ ] M5 — Global-radius stops and confirmed route boundaries
@@ -382,3 +391,41 @@ remain covered. No custom middleware, extra packages or business rules were adde
 
 Verification: all 26 backend tests passed after correcting the test environment
 data to use MemberData (framework environment names are not attribute constants).
+
+### 19 October 2026 — M2 completed; awaiting review
+
+Added SignalR at `/hubs/tracking` and the `VehicleUpdated` event. Accepted samples
+capture their immutable snapshot under the vehicle gate; Application publishes
+outside that gate through `ITrackingPublisher`. The API adapter isolates/logs
+transport failures with a bounded cancellation timeout, preserving accepted state.
+Server SignalR comes from ASP.NET Core; only the JavaScript client was added,
+pinned to 10.0.11 with its npm lockfile. No broker or database was introduced.
+
+REST snapshots now return a session envelope rather than a bare array. Events
+carry the same session identity. Angular registers listeners and connects before
+loading REST state, buffers newest updates during loading, merges by revision and
+replaces state on backend session changes. Initial connection failure, automatic
+reconnect, failed REST synchronization and stop/restart cleanup are handled.
+Regular two-second polling was removed; explicit connection status is displayed.
+Vehicle freshness/stop classification remains separate from connectivity.
+
+Checks actually executed:
+
+| Check | Result |
+| --- | --- |
+| Backend Release test run | 29 tests passed, including prior M1 checks, session lifetime, hub negotiation and publication failure/lock isolation. |
+| Frontend ChromeHeadless tests | 9 tests passed: rendering, event buffering/order/duplicates, reset to lower revisions in a new session, request cancellation, REST retry/timeout and connection lifecycle. |
+| Frontend production build | Passed, approximately 271 kB initial raw bundle. |
+| Real SignalR client against isolated API on port 5088 | Received supplied telemetry with matching REST session/revision. |
+| Real API restart with live client | Observed interruption, automatic reconnection, a new REST session with empty vehicles and successful revision-1 live delivery. |
+
+The real transport smoke check used the installed SignalR JavaScript client over
+WebSockets. A second Angular dev-server launch with a temporary proxy environment
+override was rejected by automatic approval review with only "blocked by policy";
+the live frontend-proxy and Rider GUI restart walkthrough were not automated.
+README supplies those manual verification steps. Existing user-run processes and
+unrelated edits were preserved. Historical M1 polling descriptions above record
+the prior milestone and are superseded by this entry.
+
+Next milestone: **M3**, only after review/request. Alert rules, global/per-vehicle
+settings editing, geofencing and stop/segment rules were not implemented.

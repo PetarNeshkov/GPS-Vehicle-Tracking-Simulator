@@ -23,15 +23,29 @@ export class TrackingDashboardComponent implements OnInit, OnDestroy {
 
   protected x(sample: GpsSample): number {
     const view = TRACKING.view;
-    return (sample.longitude - view.minLongitude) / (view.maxLongitude - view.minLongitude) * view.width;
+
+    const longitudeOffset = sample.longitude - view.minLongitude;
+    const longitudeRange = view.maxLongitude - view.minLongitude;
+    const horizontalRatio = longitudeOffset / longitudeRange;
+
+    return horizontalRatio * view.width;
   }
 
   protected y(sample: GpsSample): number {
     const view = TRACKING.view;
-    return (view.maxLatitude - sample.latitude) / (view.maxLatitude - view.minLatitude) * view.height;
+
+    const latitudeOffset = view.maxLatitude - sample.latitude;
+    const latitudeRange = view.maxLatitude - view.minLatitude;
+    const verticalRatio = latitudeOffset / latitudeRange;
+
+    return verticalRatio * view.height;
   }
 
   protected markerTransform(sample: GpsSample): string {
-    return `translate(${this.x(sample)}, ${this.y(sample)}) rotate(${sample.heading % 360})`;
+    const x = this.x(sample);
+    const y = this.y(sample);
+    const heading = sample.heading % 360;
+
+    return `translate(${x}, ${y}) rotate(${heading})`;
   }
 }

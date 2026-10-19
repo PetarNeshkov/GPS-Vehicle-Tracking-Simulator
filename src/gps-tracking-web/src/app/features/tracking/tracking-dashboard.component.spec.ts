@@ -5,13 +5,16 @@ import { provideZoneChangeDetection } from '@angular/core';
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { TRACKING } from '../../core/constants/tracking.constants';
 import { TrackingDashboardComponent } from './tracking-dashboard.component';
+import { TrackingConnectionService } from '../../core/services/tracking-connection.service';
+import { TrackingConnectionStub } from '../../core/services/tracking-connection.stub';
 
 describe('TrackingDashboardComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [CommonModule],
       declarations: [TrackingDashboardComponent],
-      providers: [provideZoneChangeDetection(), provideHttpClient(), provideHttpClientTesting()]
+      providers: [provideZoneChangeDetection(), provideHttpClient(), provideHttpClientTesting(),
+        { provide: TrackingConnectionService, useClass: TrackingConnectionStub }]
     });
   });
 
@@ -24,17 +27,17 @@ describe('TrackingDashboardComponent', () => {
       id: 'vehicle-1', name: 'Vehicle 1', latestSample: null,
       lastReceivedAt: null, sampleCount: 0, revision: 0
     };
-    http.expectOne(TRACKING.vehiclesPath).flush([waiting]);
+    http.expectOne(TRACKING.vehiclesPath).flush({ sessionId: 'session', vehicles: [waiting] });
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Waiting for GPS data');
     expect(fixture.nativeElement.querySelectorAll('svg g').length).toBe(0);
 
-    tick(TRACKING.pollingIntervalMs);
-    http.expectOne(TRACKING.vehiclesPath).flush([{
+    const connection = TestBed.inject(TrackingConnectionService) as unknown as TrackingConnectionStub;
+    connection.updates$.next({ sessionId: 'session', vehicle: {
       ...waiting, sampleCount: 1, revision: 1,
       latestSample: { latitude: 42.697, longitude: 23.318, speedKmh: 85.5, heading: 360,
         timestamp: '2026-10-18T09:00:00Z' }
-    }]);
+    }});
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('85.5');
     expect(fixture.nativeElement.textContent).not.toContain('Waiting for GPS data');

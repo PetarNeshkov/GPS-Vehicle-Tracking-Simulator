@@ -14,6 +14,29 @@ namespace GpsTracking.Tests;
 public sealed class TrackingApiTests
 {
     [Fact]
+    public async Task SessionIsStableAcrossClientsButChangesWithBackendAndHubNegotiates()
+    {
+        using var firstHost = CreateFactory();
+        using var firstClient = firstHost.CreateClient();
+        using var secondClient = firstHost.CreateClient();
+        var first = await firstClient.GetFromJsonAsync<TrackingSnapshotResponse>(ApiRoutes.VehiclesPath);
+        var second = await secondClient.GetFromJsonAsync<TrackingSnapshotResponse>(ApiRoutes.VehiclesPath);
+        Assert.NotEqual(Guid.Empty, first!.SessionId);
+        Assert.Equal(first.SessionId, second!.SessionId);
+
+        using var secondHost = CreateFactory();
+        using var restartedClient = secondHost.CreateClient();
+        var restarted = await restartedClient.GetFromJsonAsync<TrackingSnapshotResponse>(ApiRoutes.VehiclesPath);
+        Assert.NotEqual(first.SessionId, restarted!.SessionId);
+        Assert.All(restarted.Vehicles, vehicle => Assert.Equal(0, vehicle.Revision));
+
+        using var negotiation = await firstClient.PostAsync($"{TrackingHubContract.Path}/negotiate?negotiateVersion=1", null);
+        Assert.Equal(HttpStatusCode.OK, negotiation.StatusCode);
+        var body = await negotiation.Content.ReadFromJsonAsync<JsonObject>();
+        Assert.False(string.IsNullOrWhiteSpace(body!["connectionToken"]!.GetValue<string>()));
+    }
+
+    [Fact]
     public async Task InheritedRoutesExposeHealthWithoutExposingBaseController()
     {
         using var factory = CreateFactory();
@@ -43,14 +66,14 @@ public sealed class TrackingApiTests
     {
         using var factory = CreateFactory();
         using var client = factory.CreateClient();
-        var initial = await client.GetFromJsonAsync<VehicleSnapshotResponse[]>(ApiRoutes.VehiclesPath);
-        Assert.Equal(2, initial!.Length);
+        var initial = (await client.GetFromJsonAsync<TrackingSnapshotResponse>(ApiRoutes.VehiclesPath))!.Vehicles;
+        Assert.Equal(2, initial!.Count);
         Assert.All(initial, vehicle => Assert.Null(vehicle.LatestSample));
         using var response = await client.PostAsJsonAsync(ApiRoutes.SamplesFor("vehicle-1"), Sample());
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
         using var refreshedClient = factory.CreateClient();
-        var state = await refreshedClient.GetFromJsonAsync<VehicleSnapshotResponse[]>(ApiRoutes.VehiclesPath);
+        var state = (await refreshedClient.GetFromJsonAsync<TrackingSnapshotResponse>(ApiRoutes.VehiclesPath))!.Vehicles;
         var vehicle = Assert.Single(state!, item => item.Id == "vehicle-1");
         Assert.Equal(85.5, vehicle.LatestSample!.SpeedKmh);
         Assert.Equal(360, vehicle.LatestSample.Heading);
@@ -77,7 +100,7 @@ public sealed class TrackingApiTests
         using var response = await client.PostAsync(ApiRoutes.SamplesFor("vehicle-1"), content);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType!.MediaType);
-        var state = await client.GetFromJsonAsync<VehicleSnapshotResponse[]>(ApiRoutes.VehiclesPath);
+        var state = (await client.GetFromJsonAsync<TrackingSnapshotResponse>(ApiRoutes.VehiclesPath))!.Vehicles;
         Assert.All(state!, vehicle => Assert.Equal(0, vehicle.SampleCount));
     }
 
@@ -104,7 +127,7 @@ public sealed class TrackingApiTests
             Assert.Equal(status, response.StatusCode);
             Assert.Equal("application/problem+json", response.Content.Headers.ContentType!.MediaType);
         }
-        var state = await client.GetFromJsonAsync<VehicleSnapshotResponse[]>(ApiRoutes.VehiclesPath);
+        var state = (await client.GetFromJsonAsync<TrackingSnapshotResponse>(ApiRoutes.VehiclesPath))!.Vehicles;
         Assert.Equal(1, Assert.Single(state!, vehicle => vehicle.Id == "vehicle-1").SampleCount);
     }
 }

@@ -2,59 +2,98 @@ import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TRACKING } from '../constants/tracking.constants';
+import { REALTIME } from '../constants/realtime.constants';
 import { ERROR_MESSAGES } from '../constants/error-messages.constants';
 import { VehicleSnapshot } from '../models/vehicle-snapshot';
 import { TrackingStore } from './tracking-store.service';
+import { TrackingConnectionService } from './tracking-connection.service';
+import { TrackingConnectionStub } from './tracking-connection.stub';
 
-describe('TrackingStore', () => {
+describe('TrackingStore live synchronization', () => {
   let store: TrackingStore;
   let http: HttpTestingController;
+  let connection: TrackingConnectionStub;
   const snapshot: VehicleSnapshot = {
     id: 'vehicle-1', name: 'Vehicle 1', latestSample: null,
     lastReceivedAt: null, sampleCount: 0, revision: 0
   };
+  const vehicle = (revision: number) => ({ ...snapshot, revision, sampleCount: revision });
+  const update = (revision: number, sessionId = 'first') => ({ sessionId, vehicle: vehicle(revision) });
+  const envelope = (revision: number, sessionId = 'first') => ({ sessionId, vehicles: [vehicle(revision)] });
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    connection = new TrackingConnectionStub();
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting(),
+      { provide: TrackingConnectionService, useValue: connection }] });
     store = TestBed.inject(TrackingStore);
     http = TestBed.inject(HttpTestingController);
   });
-
   afterEach(() => { store.stop(); http.verify(); });
 
-  it('does not overlap requests and retains data through failure and recovery', fakeAsync(() => {
-    store.start();
-    store.start();
-    tick(0);
-    const first = http.expectOne(TRACKING.vehiclesPath);
-    tick(TRACKING.pollingIntervalMs);
+  it('buffers updates during REST loading, rejects older events and does not poll', fakeAsync(() => {
+    store.start(); store.start();
+    expect(connection.startCalls).toBe(1);
+    const pending = http.expectOne(TRACKING.vehiclesPath);
+    connection.updates$.next(update(3));
+    connection.updates$.next(update(2));
+    pending.flush(envelope(1));
+    expect(store.vehicles()[0].revision).toBe(3);
+    connection.updates$.next(update(3));
+    connection.updates$.next(update(1));
+    expect(store.vehicles()[0].revision).toBe(3);
+    connection.updates$.next(update(4));
+    expect(store.vehicles()[0].revision).toBe(4);
+    tick(60_000);
     http.expectNone(TRACKING.vehiclesPath);
-    first.flush([snapshot]);
-    expect(store.hasLoaded()).toBeTrue();
-
-    tick(TRACKING.pollingIntervalMs);
-    http.expectOne(TRACKING.vehiclesPath).flush('unavailable', { status: 503, statusText: 'Unavailable' });
-    expect(store.vehicles()).toEqual([snapshot]);
-    expect(store.connectionError()).toBe(ERROR_MESSAGES.trackingConnectionFailed);
-
-    tick(TRACKING.pollingIntervalMs);
-    const updated = { ...snapshot, revision: 1, sampleCount: 1 };
-    http.expectOne(TRACKING.vehiclesPath).flush([updated]);
-    expect(store.connectionError()).toBeNull();
-    expect(store.vehicles()).toEqual([updated]);
-    store.stop();
   }));
 
-  it('times out a hung request and tries again on a subsequent poll', fakeAsync(() => {
+  it('retains data through disconnection and resets revisions for a new backend session', () => {
     store.start();
-    tick(0);
-    const stalled = http.expectOne(TRACKING.vehiclesPath);
-    tick(TRACKING.requestTimeoutMs);
-    expect(stalled.cancelled).toBeTrue();
+    http.expectOne(TRACKING.vehiclesPath).flush(envelope(50));
+    connection.state$.next('reconnecting');
+    expect(store.vehicles()[0].revision).toBe(50);
     expect(store.connectionError()).toBe(ERROR_MESSAGES.trackingConnectionFailed);
-    tick(1_000);
-    http.expectOne(TRACKING.vehiclesPath).flush([snapshot]);
+    connection.state$.next('connected');
+    connection.updates$.next(update(1, 'second'));
+    http.expectOne(TRACKING.vehiclesPath).flush(envelope(0, 'second'));
+    expect(store.vehicles()[0].revision).toBe(1);
+    connection.updates$.next(update(100, 'first'));
+    expect(store.vehicles()[0].revision).toBe(1);
     expect(store.connectionError()).toBeNull();
+  });
+
+  it('cancels stale REST requests on reconnect and resynchronizes missed updates', () => {
+    store.start();
+    const old = http.expectOne(TRACKING.vehiclesPath);
+    connection.state$.next('reconnecting');
+    expect(old.cancelled).toBeTrue();
+    connection.state$.next('connected');
+    http.expectOne(TRACKING.vehiclesPath).flush(envelope(6));
+    expect(store.vehicles()[0].revision).toBe(6);
     store.stop();
+    connection.updates$.next(update(7));
+    expect(store.vehicles()[0].revision).toBe(6);
+  });
+
+  it('retries failed synchronization while retaining the newest buffered event', fakeAsync(() => {
+    store.start();
+    http.expectOne(TRACKING.vehiclesPath).flush('unavailable', { status: 503, statusText: 'Unavailable' });
+    connection.updates$.next(update(4));
+    expect(store.connectionError()).toBe(ERROR_MESSAGES.trackingSynchronizationFailed);
+    tick(REALTIME.retryDelayMs);
+    http.expectOne(TRACKING.vehiclesPath).flush(envelope(2));
+    expect(store.vehicles()[0].revision).toBe(4);
+    expect(store.connectionError()).toBeNull();
+  }));
+
+  it('times out hung synchronization and cancels retry timers on stop', fakeAsync(() => {
+    store.start();
+    const pending = http.expectOne(TRACKING.vehiclesPath);
+    tick(TRACKING.requestTimeoutMs);
+    expect(pending.cancelled).toBeTrue();
+    expect(store.connectionError()).toBe(ERROR_MESSAGES.trackingSynchronizationFailed);
+    store.stop();
+    tick(REALTIME.retryDelayMs);
+    http.expectNone(TRACKING.vehiclesPath);
   }));
 });

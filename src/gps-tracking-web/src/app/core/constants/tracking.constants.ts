@@ -1,6 +1,5 @@
 export const TRACKING = {
   vehiclesPath: '/api/vehicles',
-  pollingIntervalMs: 2_000,
   requestTimeoutMs: 5_000,
   colors: ['#0b7285', '#a84212'],
   view: {

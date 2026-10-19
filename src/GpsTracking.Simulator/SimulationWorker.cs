@@ -12,9 +12,9 @@ public sealed class SimulationWorker(
     TelemetryClient client, IOptions<SimulatorOptions> options,
     TimeProvider clock, ILogger<SimulationWorker> logger) : BackgroundService
 {
-    protected override Task ExecuteAsync(CancellationToken stoppingToken) =>
-        Task.WhenAll(options.Value.VehicleIds.Select((id, index) =>
-            RunVehicleAsync(id, DemoRoutes.Create(index), stoppingToken)));
+    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+        => Task.WhenAll(options.Value.VehicleIds.Select((id, index)
+            => RunVehicleAsync(id, DemoRoutes.Create(index), stoppingToken)));
 
     private async Task RunVehicleAsync(string vehicleId, RouteProgressor route, CancellationToken stoppingToken)
     {

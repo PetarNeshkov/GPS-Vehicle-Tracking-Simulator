@@ -16,19 +16,27 @@ public sealed class InMemoryTrackingStore : ITrackingStore
     }
 
     public SampleAcceptance Append(GpsSample sample, DateTimeOffset receivedAt)
+        => AppendWithSnapshot(sample, receivedAt).Acceptance;
+
+    public SampleAppendResult AppendWithSnapshot(GpsSample sample, DateTimeOffset receivedAt)
     {
         if (!sessions.TryGetValue(sample.VehicleId, out var session))
-            return SampleAcceptance.UnknownVehicle;
+        {
+            return new(SampleAcceptance.UnknownVehicle);
+        }
 
         lock (session.Gate)
         {
             if (session.History.Count > 0 && sample.Timestamp <= session.History[^1].Timestamp)
-                return SampleAcceptance.TimestampNotNewer;
+            {
+                return new(SampleAcceptance.TimestampNotNewer);
+            }
 
             session.History.Add(sample);
             session.LastReceivedAt = receivedAt.ToUniversalTime();
             session.Revision++;
-            return SampleAcceptance.Accepted;
+
+            return new(SampleAcceptance.Accepted, Snapshot(session));
         }
     }
 
@@ -39,14 +47,18 @@ public sealed class InMemoryTrackingStore : ITrackingStore
         {
             lock (session.Gate)
             {
-                snapshots.Add(new VehicleSnapshot(session.Vehicle.Id, session.Vehicle.Name,
-                    session.History.Count == 0 ? null : session.History[^1],
-                    session.LastReceivedAt, session.History.Count, session.Revision));
+                snapshots.Add(Snapshot(session));
             }
         }
 
         return snapshots.AsReadOnly();
     }
+
+    // Call only while holding this vehicle's gate.
+    private static VehicleSnapshot Snapshot(VehicleSession session)
+        => new(session.Vehicle.Id, session.Vehicle.Name,
+            session.History.Count == 0 ? null : session.History[^1],
+            session.LastReceivedAt, session.History.Count, session.Revision);
 
     private sealed class VehicleSession(VehicleDefinition vehicle)
     {

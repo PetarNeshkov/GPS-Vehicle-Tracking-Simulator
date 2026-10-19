@@ -13,25 +13,37 @@ public sealed class RouteProgressor
     public RouteProgressor(double speedKmh, params RoutePoint[] points)
     {
         if (!double.IsFinite(speedKmh) || speedKmh <= 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(speedKmh));
+        }
+
         if (points.Length < 2 || points.Any(point => point is null
             || !double.IsFinite(point.Latitude) || point.Latitude is < -90 or > 90
             || !double.IsFinite(point.Longitude) || point.Longitude is < -180 or > 180))
+        {
             throw new ArgumentException("A route needs at least two valid points.", nameof(points));
+        }
 
         this.points = points.ToArray();
         this.speedKmh = speedKmh;
         lengths = Enumerable.Range(0, points.Length)
             .Select(index => Distance(points[index], points[(index + 1) % points.Length])).ToArray();
+
         if (lengths.Any(length => length < 0.01))
-            throw new ArgumentException("Adjacent route points must be distinct, including the closing edge.", nameof(points));
+        {
+            throw new ArgumentException("Adjacent route points must be distinct, including the closing edge.",
+                nameof(points));
+        }
+
         totalLength = lengths.Sum();
     }
 
     public RoutePosition Advance(TimeSpan elapsed)
     {
         if (elapsed < TimeSpan.Zero)
+        {
             throw new ArgumentOutOfRangeException(nameof(elapsed));
+        }
 
         // Full laps leave the same position; keep long scheduling delays bounded.
         var remaining = (speedKmh / 3.6 * elapsed.TotalSeconds) % totalLength;

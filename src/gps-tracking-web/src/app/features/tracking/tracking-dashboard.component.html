@@ -2,9 +2,8 @@
 
 @if (store.connectionError(); as error) {
   <p class="connection-error" role="alert">{{ error }}</p>
-} @else if (!store.hasLoaded()) {
-  <p role="status">Connecting to the tracking service…</p>
 }
+<p role="status">{{ store.connectionStatus() }}</p>
 
 <section class="map-panel" aria-label="Vehicle positions">
   <div class="map-heading"><h2>Position overview</h2><span>North ↑ · Simplified coordinate view</span></div>

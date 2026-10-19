@@ -7,5 +7,7 @@ public interface ITrackingStore
 {
     SampleAcceptance Append(GpsSample sample, DateTimeOffset receivedAt);
 
+    SampleAppendResult AppendWithSnapshot(GpsSample sample, DateTimeOffset receivedAt);
+
     IReadOnlyList<VehicleSnapshot> GetSnapshots();
 }

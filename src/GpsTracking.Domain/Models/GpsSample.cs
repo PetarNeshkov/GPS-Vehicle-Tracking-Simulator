@@ -1,5 +1,3 @@
-using GpsTracking.Domain.Constants;
-
 namespace GpsTracking.Domain.Models;
 
 public sealed record GpsSample
@@ -15,17 +13,17 @@ public sealed record GpsSample
         double longitude, double speedKmh, double heading)
     {
         if (string.IsNullOrWhiteSpace(vehicleId))
-            throw new ArgumentException(GpsSampleConstants.VehicleIdRequired, nameof(vehicleId));
+            throw new ArgumentException("Vehicle ID is required.", nameof(vehicleId));
         if (timestamp == default)
-            throw new ArgumentException(GpsSampleConstants.TimestampRequired, nameof(timestamp));
-        if (!double.IsFinite(latitude) || latitude is < GpsSampleConstants.MinimumLatitude or > GpsSampleConstants.MaximumLatitude)
-            throw new ArgumentException(GpsSampleConstants.InvalidLatitude, nameof(latitude));
-        if (!double.IsFinite(longitude) || longitude is < GpsSampleConstants.MinimumLongitude or > GpsSampleConstants.MaximumLongitude)
-            throw new ArgumentException(GpsSampleConstants.InvalidLongitude, nameof(longitude));
-        if (!double.IsFinite(speedKmh) || speedKmh < GpsSampleConstants.MinimumSpeedKmh)
-            throw new ArgumentException(GpsSampleConstants.InvalidSpeed, nameof(speedKmh));
-        if (!double.IsFinite(heading) || heading is < GpsSampleConstants.MinimumHeading or > GpsSampleConstants.MaximumHeading)
-            throw new ArgumentException(GpsSampleConstants.InvalidHeading, nameof(heading));
+            throw new ArgumentException("A generation timestamp is required.", nameof(timestamp));
+        if (!double.IsFinite(latitude) || latitude is < -90 or > 90)
+            throw new ArgumentException("Latitude must be between -90 and 90.", nameof(latitude));
+        if (!double.IsFinite(longitude) || longitude is < -180 or > 180)
+            throw new ArgumentException("Longitude must be between -180 and 180.", nameof(longitude));
+        if (!double.IsFinite(speedKmh) || speedKmh < 0)
+            throw new ArgumentException("Speed must be finite and nonnegative.", nameof(speedKmh));
+        if (!double.IsFinite(heading) || heading is < 0 or > 360)
+            throw new ArgumentException("Heading must be between 0 and 360.", nameof(heading));
 
         VehicleId = vehicleId;
         Timestamp = timestamp.ToUniversalTime();

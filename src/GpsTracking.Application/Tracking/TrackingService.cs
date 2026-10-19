@@ -3,9 +3,9 @@ using GpsTracking.Domain.Models;
 
 namespace GpsTracking.Application.Tracking;
 
-public sealed class TrackingService(ITrackingStore store, TimeProvider timeProvider)
+public sealed class TrackingService(ITrackingStore store, TimeProvider timeProvider, ITrackingPublisher publisher)
 {
-    public SubmitSampleResult SubmitSample(SubmitSampleCommand command)
+    public async Task<SubmitSampleResult> SubmitSampleAsync(SubmitSampleCommand command)
     {
         GpsSample sample;
         try
@@ -18,11 +18,14 @@ public sealed class TrackingService(ITrackingStore store, TimeProvider timeProvi
             return new SubmitSampleResult(SampleAcceptance.InvalidSample, exception.Message);
         }
 
-        return new SubmitSampleResult(ProcessSample(sample));
-    }
+        var result = store.AppendWithSnapshot(sample, timeProvider.GetUtcNow());
+        if (result.Snapshot is { } snapshot)
+        {
+            await publisher.PublishAsync(snapshot);
+        }
 
-    public SampleAcceptance ProcessSample(GpsSample sample)
-        => store.Append(sample, timeProvider.GetUtcNow());
+        return new SubmitSampleResult(result.Acceptance);
+    }
 
     public IReadOnlyList<VehicleSnapshot> GetSnapshots()
         => store.GetSnapshots();
