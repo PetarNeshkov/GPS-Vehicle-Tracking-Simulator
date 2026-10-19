@@ -59,6 +59,23 @@
         <p class="waiting">Waiting for GPS data</p>
         <p>Start the simulator to receive this vehicle’s position.</p>
       }
+      <app-settings-editor [vehicle]="vehicle" [sessionId]="store.currentSession()" />
+    </article>
+  }
+</section>
+
+<app-settings-editor [global]="store.globalSettings()" [sessionId]="store.currentSession()" />
+
+<section aria-label="Tracking alerts">
+  <h2>Alert history</h2>
+  @if (store.alerts().length === 0) {
+    <p>No alerts in this session.</p>
+  }
+  @for (alert of store.alerts(); track alert.id) {
+    <article class="vehicle-card">
+      <strong>{{ alert.vehicleId }} — {{ alert.type }}</strong>
+      <p>{{ alert.occurredAt | date:'medium' }}: {{ alert.speedKmh | number:'1.0-1' }} km/h,
+        above {{ alert.speedLimitKmh | number:'1.0-1' }} km/h for at least {{ alert.speedingDurationSeconds }} seconds.</p>
     </article>
   }
 </section>

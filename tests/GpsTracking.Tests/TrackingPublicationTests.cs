@@ -29,6 +29,7 @@ public sealed class TrackingPublicationTests
         };
         Assert.Equal(SampleAcceptance.Accepted, (await service.SubmitSampleAsync(command)).Acceptance);
         var published = Assert.IsType<VehicleUpdatedEvent>(client.Payload);
+
         Assert.Equal(session.Id, published.SessionId);
         Assert.Equal(1, published.Vehicle.Revision);
         Assert.Equal(TrackingHubContract.VehicleUpdated, client.Method);
@@ -39,6 +40,13 @@ public sealed class TrackingPublicationTests
         Assert.Equal(SampleAcceptance.Accepted,
             (await service.SubmitSampleAsync(command with { Timestamp = command.Timestamp.AddSeconds(10) })).Acceptance);
         Assert.Equal(2, store.GetSnapshots()[0].Revision);
+
+        var changedGlobal = await service.UpdateGlobalSettingsAsync(new GlobalSettings
+        {
+            StopRadiusMeters = 20
+        });
+        Assert.Equal(20, changedGlobal.Value!.Settings.StopRadiusMeters);
+        Assert.Equal(20, store.GetGlobalSettings().Settings.StopRadiusMeters);
         Assert.Equal(1, published.Vehicle.Revision);
         Assert.NotEqual(session.Id, new TrackingSession().Id);
     }

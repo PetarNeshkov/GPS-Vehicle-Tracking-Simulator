@@ -10,7 +10,8 @@ namespace GpsTracking.Simulator;
 
 public sealed class SimulationWorker(
     TelemetryClient client, IOptions<SimulatorOptions> options,
-    TimeProvider clock, ILogger<SimulationWorker> logger) : BackgroundService
+    TimeProvider clock, ILogger<SimulationWorker> logger)
+    : BackgroundService
 {
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
         => Task.WhenAll(options.Value.VehicleIds.Select((id, index)

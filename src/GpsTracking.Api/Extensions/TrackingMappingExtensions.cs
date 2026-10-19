@@ -1,6 +1,7 @@
 using GpsTracking.Api.Constants;
 using GpsTracking.Application.Tracking;
 using GpsTracking.Contracts.Tracking;
+using GpsTracking.Domain.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GpsTracking.Api.Extensions;
@@ -18,7 +19,44 @@ public static class TrackingMappingExtensions
                 ? new GpsSampleResponse(sample.Timestamp, sample.Latitude, sample.Longitude,
                     sample.SpeedKmh, sample.Heading)
                 : null,
-            snapshot.LastReceivedAt, snapshot.SampleCount, snapshot.Revision);
+            snapshot.LastReceivedAt, snapshot.SampleCount, snapshot.Revision,
+            (snapshot.Settings ?? new VehicleSettings()).ToResponse(),
+            (snapshot.Alerts ?? []).Select(alert => alert.ToResponse()).ToArray());
+
+    public static VehicleSettingsResponse ToResponse(this VehicleSettings settings)
+        => new(settings.SpeedLimitKmh, settings.SpeedingDurationSeconds, settings.StopDurationSeconds);
+
+    public static GlobalSettingsResponse ToResponse(this GlobalSettingsSnapshot snapshot)
+        => new(snapshot.Settings.StopRadiusMeters, snapshot.Revision);
+
+    public static AlertResponse ToResponse(this TrackingAlert alert)
+        => new(alert.Id, alert.VehicleId, alert.Type, alert.OccurredAt, alert.CreatedAt,
+            alert.SpeedKmh, alert.SpeedLimitKmh, alert.SpeedingDurationSeconds);
+
+    public static VehicleSettings ToSettings(this UpdateVehicleSettingsRequest request)
+        => new() { SpeedLimitKmh = request.SpeedLimitKmh!.Value,
+            SpeedingDurationSeconds = request.SpeedingDurationSeconds!.Value,
+            StopDurationSeconds = request.StopDurationSeconds!.Value };
+
+    public static GlobalSettings ToSettings(this UpdateGlobalSettingsRequest request)
+        => new() { StopRadiusMeters = request.StopRadiusMeters!.Value };
+
+    public static IActionResult ToSettingsResult<T>(this SettingsUpdateResult<T> result,
+        ControllerBase controller, Func<T, object> map) where T : class
+    {
+        if (result.NotFound)
+            return controller.Problem(statusCode: StatusCodes.Status404NotFound,
+                title: TrackingProblemConstants.UnknownVehicleTitle);
+        if (result.Error is not null)
+            return controller.Problem(statusCode: StatusCodes.Status400BadRequest,
+                title: TrackingProblemConstants.InvalidSettingsTitle, detail: result.Error);
+        return map(result.Value!).ToOkResult();
+    }
+
+    public static IActionResult ToVehicleSettingsResult(this VehicleSnapshot? snapshot, ControllerBase controller)
+        => snapshot is null
+            ? controller.Problem(statusCode: StatusCodes.Status404NotFound, title: TrackingProblemConstants.UnknownVehicleTitle)
+            : snapshot.ToResponse().ToOkResult();
 
     public static IActionResult ToActionResult(this SubmitSampleResult result,
         ControllerBase controller, string vehicleId)

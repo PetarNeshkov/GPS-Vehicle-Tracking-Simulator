@@ -13,4 +13,6 @@ public sealed record VehicleSnapshotResponse(
     GpsSampleResponse? LatestSample,
     DateTimeOffset? LastReceivedAt,
     int SampleCount,
-    long Revision);
+    long Revision,
+    VehicleSettingsResponse? Settings = null,
+    IReadOnlyList<AlertResponse>? Alerts = null);

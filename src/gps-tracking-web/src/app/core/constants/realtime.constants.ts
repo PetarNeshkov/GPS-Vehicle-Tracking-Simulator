@@ -1,6 +1,7 @@
 export const REALTIME = {
   hubPath: '/hubs/tracking',
   vehicleUpdatedEvent: 'VehicleUpdated',
+  globalSettingsUpdatedEvent: 'GlobalSettingsUpdated',
   retryDelayMs: 2_000,
   reconnectDelaysMs: [0, 2_000, 5_000, 10_000],
   status: {

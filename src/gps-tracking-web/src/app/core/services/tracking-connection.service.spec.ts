@@ -23,7 +23,7 @@ describe('TrackingConnectionService', () => {
     service.state$.subscribe(state => states.push(state));
     service.start(); service.start();
     flushMicrotasks();
-    expect(hub.on.calls.count()).toBe(1);
+    expect(hub.on.calls.count()).toBe(2);
     expect(hub.on).toHaveBeenCalledBefore(hub.start);
     expect(states.at(-1)).toBe('reconnecting');
     tick(REALTIME.retryDelayMs);

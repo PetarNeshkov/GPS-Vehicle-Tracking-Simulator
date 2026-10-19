@@ -12,6 +12,12 @@ public sealed class TrackingOptionsValidator : IValidateOptions<TrackingOptions>
         var vehicles = options.Vehicles ?? [];
         var geofences = options.Geofences ?? [];
 
+        var globalError = options.GlobalSettings?.Validate();
+        if (options.GlobalSettings is null || globalError is not null)
+        {
+            errors.Add(globalError ?? SettingsConstants.InvalidGlobalSettings);
+        }
+
         if (vehicles.Length != TrackingValidationConstants.RequiredVehicleCount)
         {
             errors.Add(TrackingValidationConstants.InvalidVehicleCount);
@@ -28,12 +34,7 @@ public sealed class TrackingOptionsValidator : IValidateOptions<TrackingOptions>
             }
 
             var settings = vehicle.Settings;
-            if (settings is null || !double.IsFinite(settings.SpeedLimitKmh)
-                || settings.SpeedLimitKmh <= TrackingValidationConstants.PositiveThresholdLowerBound
-                || settings.SpeedingDurationSeconds <= TrackingValidationConstants.PositiveThresholdLowerBound
-                || settings.StopDurationSeconds <= TrackingValidationConstants.PositiveThresholdLowerBound
-                || !double.IsFinite(settings.StopRadiusMeters)
-                || settings.StopRadiusMeters <= TrackingValidationConstants.PositiveThresholdLowerBound)
+            if (settings is null || settings.Validate() is not null)
             {
                 errors.Add(string.Format(TrackingValidationConstants.InvalidVehicleSettingsFormat, vehicle.Id));
             }

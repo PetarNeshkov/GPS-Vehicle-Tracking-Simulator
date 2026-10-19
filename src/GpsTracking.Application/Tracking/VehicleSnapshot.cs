@@ -8,4 +8,6 @@ public sealed record VehicleSnapshot(
     GpsSample? LatestSample,
     DateTimeOffset? LastReceivedAt,
     int SampleCount,
-    long Revision);
+    long Revision,
+    VehicleSettings? Settings = null,
+    IReadOnlyList<TrackingAlert>? Alerts = null);

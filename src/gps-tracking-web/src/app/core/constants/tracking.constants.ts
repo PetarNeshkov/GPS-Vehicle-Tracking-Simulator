@@ -1,5 +1,7 @@
 export const TRACKING = {
   vehiclesPath: '/api/vehicles',
+  settingsPath: '/api/settings',
+  vehicleSettingsPath: (id: string) => `/api/vehicles/${encodeURIComponent(id)}/settings`,
   requestTimeoutMs: 5_000,
   colors: ['#0b7285', '#a84212'],
   view: {

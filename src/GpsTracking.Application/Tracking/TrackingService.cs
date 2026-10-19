@@ -29,4 +29,48 @@ public sealed class TrackingService(ITrackingStore store, TimeProvider timeProvi
 
     public IReadOnlyList<VehicleSnapshot> GetSnapshots()
         => store.GetSnapshots();
+
+    public VehicleSnapshot? GetVehicle(string id)
+        => store.GetSnapshots().FirstOrDefault(vehicle => vehicle.Id == id);
+
+    public IReadOnlyList<TrackingAlert> GetAlerts()
+        => store.GetSnapshots().SelectMany(vehicle => vehicle.Alerts ?? [])
+            .OrderByDescending(alert => alert.OccurredAt)
+            .ThenBy(alert => alert.Id)
+            .ToArray();
+
+    public GlobalSettingsSnapshot GetGlobalSettings() => store.GetGlobalSettings();
+
+    public async Task<SettingsUpdateResult<VehicleSnapshot>> UpdateSettingsAsync(string id, VehicleSettings settings)
+    {
+        var error = settings.Validate();
+        if (error is not null)
+        {
+            return new SettingsUpdateResult<VehicleSnapshot>(null, error);
+        }
+
+        var snapshot = store.UpdateSettings(id, settings, timeProvider.GetUtcNow());
+        if (snapshot is null)
+        {
+            return new SettingsUpdateResult<VehicleSnapshot>(null, NotFound: true);
+        }
+
+        await publisher.PublishAsync(snapshot);
+
+        return new SettingsUpdateResult<VehicleSnapshot>(snapshot);
+    }
+
+    public async Task<SettingsUpdateResult<GlobalSettingsSnapshot>> UpdateGlobalSettingsAsync(GlobalSettings settings)
+    {
+        var error = settings.Validate();
+        if (error is not null)
+        {
+            return new SettingsUpdateResult<GlobalSettingsSnapshot>(null, error);
+        }
+
+        var snapshot = store.UpdateGlobalSettings(settings);
+        await publisher.PublishGlobalSettingsAsync(snapshot);
+
+        return new SettingsUpdateResult<GlobalSettingsSnapshot>(snapshot);
+    }
 }

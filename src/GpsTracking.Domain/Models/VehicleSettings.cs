@@ -1,11 +1,15 @@
+using GpsTracking.Domain.Constants;
+
 namespace GpsTracking.Domain.Models;
 
 public sealed record VehicleSettings
 {
-    public double SpeedLimitKmh { get; init; } = 80;
-    public int SpeedingDurationSeconds { get; init; } = 30;
-    public int StopDurationSeconds { get; init; } = 180;
+    public double SpeedLimitKmh { get; init; } = SettingsConstants.DefaultSpeedLimitKmh;
+    public int SpeedingDurationSeconds { get; init; } = SettingsConstants.DefaultSpeedingDurationSeconds;
+    public int StopDurationSeconds { get; init; } = SettingsConstants.DefaultStopDurationSeconds;
 
-    // Provisional default pending evaluator confirmation.
-    public double StopRadiusMeters { get; init; } = 10;
+    public string? Validate()
+        => double.IsFinite(SpeedLimitKmh) && SpeedLimitKmh > 0
+        && SpeedingDurationSeconds > 0 && StopDurationSeconds > 0
+        ? null : SettingsConstants.InvalidVehicleSettings;
 }

@@ -100,7 +100,7 @@ persistence remains outside the agreed scope.
 
 - The API binds and validates two vehicle definitions, their independent initial
   settings, and two geofence rectangles. It exposes health, development OpenAPI,
-  ingestion and snapshots. Settings and geofences remain seed definitions.
+  ingestion, snapshots, alerts and live settings. Geofences remain seed definitions.
 - Domain records represent seed values without depending on ASP.NET Core or
   configuration packages. API options and validators own startup binding.
 - The simulator's .NET generic host validates its backend URL, minimum interval,
@@ -120,8 +120,8 @@ including FormData, without forcing headers or adding retries. Synchronization a
 timeout/error presentation remain owned by `TrackingStore`. Extend this wrapper
 when a future feature requires additional HTTP capabilities.
 Frontend application error messages live in `core/constants/error-messages.constants.ts`.
-Use named constants for validation messages and limits when forms are introduced;
-the current dashboard has no form validators. Request timeouts and map bounds
+Settings forms use named validation messages and limits in `settings.constants.ts`.
+Request timeouts and map bounds
 already live in tracking constants. Backend error bodies remain unmodified by
 the shared HTTP wrapper.
 
@@ -161,6 +161,43 @@ event handlers; identity/generation guards ignore obsolete asynchronous callback
 Live connection state is separate from vehicle freshness; M2 does not infer stops
 or mark stationary data as stale.
 
+### M3 speeding and settings
+
+`SpeedingRule` is plain C# in Domain. Supplied speed must be strictly above the
+limit for the full GPS timestamp duration: 00/10/20/30 seconds qualifies at 30.
+Equality or a lower speed ends the episode. One alert is recorded per episode.
+Alerts distinguish GPS occurrence time from backend creation time and retain the
+thresholds that produced them.
+
+Sample ingestion and vehicle settings changes use the same per-vehicle storage
+gate. Settings changes reevaluate only the latest continuously qualifying suffix
+of retained samples. A 30-to-15-second change after 20 seconds can immediately
+produce an alert at the latest GPS timestamp. An already-alerted qualifying state
+keeps its latch; invalidating that state rearms it. Stop-duration-only changes do
+not reevaluate speeding. Settings updates can advance revision without adding a
+sample, so revision and sample count are separate concepts.
+
+`GET /api/vehicles` also includes global settings. Each vehicle snapshot includes
+settings and cumulative alert history. `GET /api/alerts` exposes the session's
+combined history. `GET /api/vehicles/{id}/settings` returns a vehicle snapshot;
+`PUT` returns its session-tagged event. `GET`/`PUT /api/settings` return a global
+settings event with an independent revision. Global radius defaults to 10 metres
+and has its own storage gate. Stop duration and radius are saved in M3; spatial
+processing and coordinated stop reevaluation belong to M5.
+
+Publication occurs after locks are released. Vehicle settings and alerts reuse
+`VehicleUpdated`; global edits publish `GlobalSettingsUpdated`. Carrying cumulative
+alerts avoids a separate alert delivery/replay mechanism and recovers missed alerts
+through REST synchronization. This trades simplicity for increasing payload size
+and memory use during long sessions. Angular merges alerts by ID independently of
+vehicle revision and resets history when the backend session changes.
+
+Reactive forms use `@angular/forms` 22.2.3. Dirty drafts survive live updates;
+successful saves use the latest known revision, failed saves retain input, and
+duplicate submissions are blocked while a request is pending. Concurrent clients
+use last-write-wins settings. Backend restart restores configured defaults and
+clears alerts; browser refresh preserves backend state.
+
 ## Communication and startup
 
 Each application starts independently. The API no longer launches, builds or
@@ -175,10 +212,10 @@ frontend-origin CORS policy permits credentials for SignalR's default transport
 behavior; wildcard origins are not allowed. No authentication or external map keys
 are configured. Hosted deployment is out of scope.
 
-Simulator ingestion and snapshots use HTTP; future history/settings use REST;
-live publication uses SignalR in M2. A broker, database, authentication, MediatR,
+Simulator ingestion, snapshots, alerts and settings use HTTP;
+live publication uses SignalR. A broker, database, authentication, MediatR,
 generic repositories and separate read/write stores are unnecessary for this
-two-vehicle assessment. Business rules will be ordinary C#.
+two-vehicle assessment. Business rules are ordinary C#.
 
 ## Versions and reproducibility
 
@@ -210,15 +247,15 @@ The rare faster-reporting exception is intentionally unused by the default demo.
 
 The API and simulator have separate configuration files to avoid a runtime or
 project dependency between processes. Vehicle IDs and the backend URL must be
-kept consistent. Runtime settings and rule evaluations are future work. In-memory
+kept consistent. Runtime settings and speeding evaluation are implemented. In-memory
 raw history is unbounded for the short demo; production retention is out of scope.
 
 The evaluator confirmed a globally configurable stop radius (default 10 metres),
 route boundaries at stop onset and movement resumption, and full elapsed speeding
-windows. M3 will replace the current per-vehicle radius seeds with global settings
+windows. M3 replaces per-vehicle radius seeds with global settings
 and `GET`/`PUT /api/settings`; M5 will apply radius changes to both vehicles' pending
-stop state. Speed limit and speeding/stop durations remain per vehicle. No M1 code
-implements these rules. Fixed stop anchors and geofence initialization remain
+stop state. Speed limit and speeding/stop durations remain per vehicle.
+Fixed stop anchors and geofence initialization remain
 implementation defaults rather than separately confirmed requirements.
 
 Local delivery and the HTTP/SignalR architecture are accepted. Persistence is

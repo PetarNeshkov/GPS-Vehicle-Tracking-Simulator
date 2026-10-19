@@ -1,5 +1,5 @@
 import {inject, Injectable, OnDestroy, signal} from '@angular/core';
-import {Subscription, timeout} from 'rxjs';
+import {Subscription, tap, timeout} from 'rxjs';
 import {TRACKING} from '../constants/tracking.constants';
 import {ERROR_MESSAGES} from '../constants/error-messages.constants';
 import {VehicleSnapshot} from '../models/vehicle-snapshot';
@@ -7,6 +7,7 @@ import {TrackingApiService} from './tracking-api.service';
 import {TrackingConnectionService} from './tracking-connection.service';
 import {REALTIME} from '../constants/realtime.constants';
 import {TrackingConnectionState, VehicleUpdatedEvent} from '../models/tracking-events';
+import {GlobalSettings, GlobalSettingsEvent, TrackingAlert, VehicleSettings} from '../models/tracking-settings';
 
 @Injectable({providedIn: 'root'})
 export class TrackingStore implements OnDestroy {
@@ -27,11 +28,32 @@ export class TrackingStore implements OnDestroy {
 
   private readonly buffered = new Map<string, VehicleUpdatedEvent>();
   private readonly status = signal<string>(REALTIME.status.stopped);
+  private readonly global = signal<GlobalSettings | null>(null);
+  private readonly alertHistory = signal<readonly TrackingAlert[]>([]);
+  private readonly activeSession = signal<string | undefined>(undefined);
+  private readonly bufferedGlobal = new Map<string, GlobalSettingsEvent>();
 
   readonly vehicles = this.snapshots.asReadonly();
   readonly connectionError = this.error.asReadonly();
   readonly hasLoaded = this.loaded.asReadonly();
   readonly connectionStatus = this.status.asReadonly();
+  readonly globalSettings = this.global.asReadonly();
+  readonly alerts = this.alertHistory.asReadonly();
+  readonly currentSession = this.activeSession.asReadonly();
+
+  saveVehicleSettings(id: string, settings: VehicleSettings) {
+    return this.api.updateVehicleSettings(id, settings).pipe(
+      timeout(TRACKING.requestTimeoutMs),
+      tap(event => this.receive(event))
+    );
+  }
+
+  saveGlobalSettings(radius: number) {
+    return this.api.updateGlobalSettings(radius).pipe(
+      timeout(TRACKING.requestTimeoutMs),
+      tap(event => this.receiveGlobal(event))
+    );
+  }
 
   start(): void {
     if (this.subscription) {
@@ -42,6 +64,9 @@ export class TrackingStore implements OnDestroy {
 
     const updatesSubscription = this.connection.updates$.subscribe(event => this.receive(event));
     this.subscription.add(updatesSubscription);
+
+    const globalSubscription = this.connection.globalUpdates$.subscribe(event => this.receiveGlobal(event));
+    this.subscription.add(globalSubscription);
 
     const stateSubscription = this.connection.state$.subscribe(state => this.onConnectionState(state));
     this.subscription.add(stateSubscription);
@@ -55,6 +80,7 @@ export class TrackingStore implements OnDestroy {
 
     this.cancelSynchronization();
     this.buffered.clear();
+    this.bufferedGlobal.clear();
 
     this.connection.stop();
     this.status.set(REALTIME.status.stopped);
@@ -63,6 +89,7 @@ export class TrackingStore implements OnDestroy {
   private onConnectionState(state: TrackingConnectionState): void {
     this.cancelSynchronization();
     this.buffered.clear();
+    this.bufferedGlobal.clear();
     this.status.set(REALTIME.status[state]);
 
     if (state === 'connected') {
@@ -101,6 +128,18 @@ export class TrackingStore implements OnDestroy {
         });
 
         this.sessionId = snapshot.sessionId;
+        this.activeSession.set(snapshot.sessionId);
+        if (!sameSession) {
+          this.alertHistory.set([]);
+          this.global.set(null);
+        }
+
+        const alerts = snapshot.vehicles.flatMap(vehicle => vehicle.alerts ?? []);
+        this.mergeAlerts(alerts);
+        if (snapshot.globalSettings) {
+          this.applyGlobal({ sessionId: snapshot.sessionId, settings: snapshot.globalSettings });
+        }
+
         this.snapshots.set(mergedVehicles);
 
         for (const event of this.buffered.values()) {
@@ -108,6 +147,10 @@ export class TrackingStore implements OnDestroy {
         }
 
         this.buffered.clear();
+        for (const event of this.bufferedGlobal.values()) {
+          this.applyGlobal(event);
+        }
+        this.bufferedGlobal.clear();
         this.synchronizing = false;
         this.loaded.set(true);
         this.error.set(null);
@@ -142,6 +185,8 @@ export class TrackingStore implements OnDestroy {
       return;
     }
 
+    this.mergeAlerts(event.vehicle.alerts ?? []);
+
     this.snapshots.update(vehicles => {
       return vehicles.map(vehicle => {
         const isMatchingVehicle = vehicle.id === event.vehicle.id;
@@ -160,6 +205,39 @@ export class TrackingStore implements OnDestroy {
 
     clearTimeout(this.retry);
     this.retry = undefined;
+  }
+
+  private mergeAlerts(alerts: readonly TrackingAlert[]): void {
+    const entries = this.alertHistory().map(alert => [alert.id, alert] as const);
+    const byId = new Map(entries);
+    for (const alert of alerts) {
+      byId.set(alert.id, alert);
+    }
+
+    const sortedAlerts = Array.from(byId.values()).sort((left, right) =>
+      right.occurredAt.localeCompare(left.occurredAt) || left.id.localeCompare(right.id));
+    this.alertHistory.set(sortedAlerts);
+  }
+
+  private receiveGlobal(event: GlobalSettingsEvent): void {
+    if (this.synchronizing) {
+      const previous = this.bufferedGlobal.get(event.sessionId);
+      if (!previous || previous.settings.revision < event.settings.revision)
+        this.bufferedGlobal.set(event.sessionId, event);
+    } else {
+      this.applyGlobal(event);
+    }
+  }
+
+  private applyGlobal(event: GlobalSettingsEvent): void {
+    if (event.sessionId !== this.sessionId) {
+      return;
+    }
+
+    const current = this.global();
+    if (!current || event.settings.revision > current.revision) {
+      this.global.set(event.settings);
+    }
   }
 
   ngOnDestroy(): void {

@@ -22,7 +22,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ITrackingPublisher, SignalRTrackingPublisher>();
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<ITrackingStore>(provider => new InMemoryTrackingStore(
-            provider.GetRequiredService<IOptions<TrackingOptions>>().Value.Vehicles));
+            provider.GetRequiredService<IOptions<TrackingOptions>>().Value.Vehicles,
+            provider.GetRequiredService<IOptions<TrackingOptions>>().Value.GlobalSettings));
         services.AddSingleton<TrackingService>();
         services.AddSingleton<IValidateOptions<TrackingOptions>, TrackingOptionsValidator>();
         services.AddOptions<TrackingOptions>()

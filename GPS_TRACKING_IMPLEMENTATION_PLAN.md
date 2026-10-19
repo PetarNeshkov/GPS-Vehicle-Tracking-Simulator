@@ -81,7 +81,8 @@ Validate finite coordinate/speed/heading values, bounds, nonnegative speed,
 positive durations/radius and known vehicle IDs. Heading 360 is accepted.
 Raw observations are independent from derived route membership.
 
-Endpoints (sample ingestion, snapshots and the live hub are implemented through M2):
+Endpoints (ingestion, snapshots, alerts, settings and the live hub are implemented
+through M3; history, segments and geofence reads remain future work):
 
 - `POST /api/vehicles/{id}/samples`
 - `GET /api/vehicles`
@@ -89,19 +90,18 @@ Endpoints (sample ingestion, snapshots and the live hub are implemented through 
 - `GET /api/alerts` and `/api/geofences`
 - `GET`/`PUT /api/vehicles/{id}/settings`
 - `GET`/`PUT /api/settings` for global settings, initially `StopRadiusMeters`
-- `/hubs/tracking` for `VehicleUpdated` events
+- `/hubs/tracking` for `VehicleUpdated` and `GlobalSettingsUpdated` events
 
 M2 changes `GET /api/vehicles` from an array to `{ sessionId, vehicles }`. Events
 contain `{ sessionId, vehicle }`. The session UUID belongs to one backend lifetime;
 frontend revision comparisons reset when REST synchronization identifies a new
 session. Simulator POST bodies are unchanged. Update frontend and backend together.
 
-M3 will move `StopRadiusMeters` out of `VehicleSettings` and the two vehicle seed
-settings into global tracking settings, defaulting to 10. Validate a finite,
-positive radius and show it once in a global UI section. Per-vehicle settings
-retain speed limit, speeding duration and stop duration. Existing M1 code still
-contains the earlier per-vehicle radius representation; this is scheduled work,
-not an implemented correction. Spatial reevaluation becomes functional in M5.
+M3 moves `StopRadiusMeters` out of `VehicleSettings` and the two vehicle seed
+settings into global tracking settings, defaulting to 10. The radius must be finite
+and positive and appears once in a global UI section. Per-vehicle settings retain
+speed limit, speeding duration and stop duration. Spatial reevaluation becomes
+functional in M5.
 
 Process samples and settings under the same per-vehicle gate. Store accepted
 observations, rule changes and alerts together in memory, increment a monotonic
@@ -169,7 +169,12 @@ Explicit clarification acceptance checks:
   - [x] M2.2 — Application publication boundary and API SignalR adapter/hub.
   - [x] M2.3 — Frontend connection lifecycle, buffered synchronization and revision merging.
   - [x] M2.4 — Failure/reconnect tests, live restart check and Rider documentation.
-- [ ] M3 — Speeding, per-vehicle settings and global radius settings
+- [x] M3 — Speeding, per-vehicle settings and global radius settings
+  - [x] Plain C# speeding rule, elapsed windows and episode rearming
+  - [x] Atomic vehicle settings reevaluation and retained alert history
+  - [x] Global radius model, validation and settings endpoints
+  - [x] Live settings forms, alerts and revision/session synchronization
+  - [x] Focused backend/frontend checks and startup/demo documentation
 - [ ] M4 — Geofencing
 - [ ] M5 — Global-radius stops and confirmed route boundaries
 - [ ] M6 — Scenarios and UI completion
@@ -429,3 +434,42 @@ the prior milestone and are superseded by this entry.
 
 Next milestone: **M3**, only after review/request. Alert rules, global/per-vehicle
 settings editing, geofencing and stop/segment rules were not implemented.
+
+### 19 October 2026 — M3 completed; awaiting review
+
+Implemented plain C# speeding evaluation using supplied speed and full GPS elapsed
+windows. Equality/below-limit samples rearm the rule; a continuous episode produces
+one alert. Vehicle settings changes reevaluate the latest qualifying history suffix
+under the same gate as ingestion. Immediate alerts use the latest GPS timestamp;
+historical alerts retain their original thresholds and separate creation time.
+
+Added per-vehicle GET/PUT settings, GET alerts and global GET/PUT settings. Moved
+stop radius from vehicle seeds to one global setting, default 10 metres. Controllers
+delegate to Application and use shared response mapping. Validation/default/error
+constants belong to their respective layers. No ORM or other infrastructure added.
+
+Vehicle snapshots now include settings and cumulative alerts. Global settings have
+their own revision and SignalR event. Angular merges alerts by ID, compares revisions
+within a session and resets on backend session replacement. Reactive settings forms
+preserve dirty drafts during live updates, validate finite positive values/integer
+durations, prevent duplicate submissions and retain input after failed saves.
+Added only `@angular/forms` 22.2.3 and updated its npm lockfile.
+
+Checks actually executed:
+
+| Check | Result |
+| --- | --- |
+| `dotnet restore --locked-mode` | Passed. |
+| Backend Release tests | 40 passed, including full-window boundaries, equality/rearming, settings reevaluation, concurrent ingestion/settings, validation, HTTP behavior and transport failure isolation. |
+| Frontend ChromeHeadless tests | 11 passed, including prior M2 cases, alert deduplication, global revision/session handling and dirty settings forms. |
+| Frontend production build | Passed; approximately 333 kB initial raw bundle. |
+| Real API and SignalR client on isolated port 5090 | Verified 20-to-15-second immediate alert at the latest GPS timestamp, no duplicate on identical save, independent vehicle settings and live global settings revision delivery. |
+| `git diff --check` | Passed; Git reported only automatic LF/CRLF conversion notices. |
+
+README documents Rider startup, the required `npm ci`, and a speeding demonstration
+with the existing simulator. Architecture notes describe cumulative snapshot alert
+delivery, last-write-wins edits and in-memory lifetime. GUI verification in Rider
+was not automated. Stop duration and global radius can be saved, but spatial stop
+detection remains M5. Geofencing remains M4. No subsequent milestone implemented.
+
+Next milestone: **M4**, only after review/request.

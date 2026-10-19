@@ -1,6 +1,8 @@
 import { VehicleSnapshot } from './vehicle-snapshot';
+import { GlobalSettings } from './tracking-settings';
 
 export interface TrackingSnapshot {
+  readonly globalSettings?: GlobalSettings;
   readonly sessionId: string;
   readonly vehicles: readonly VehicleSnapshot[];
 }

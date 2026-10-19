@@ -1,0 +1,38 @@
+@if (vehicle?.settings) {
+  <form [formGroup]="vehicleForm" (ngSubmit)="saveVehicle()">
+    <fieldset [disabled]="saving">
+      <legend>Vehicle thresholds</legend>
+      <label>Speed limit (km/h)<input type="number" step="any" formControlName="speedLimitKmh" /></label>
+      @if (vehicleForm.controls.speedLimitKmh.touched && vehicleForm.controls.speedLimitKmh.invalid) {
+        <p class="error" role="alert">{{ constants.validation.positive }}</p>
+      }
+      <label>Speeding duration (seconds)<input type="number" step="1" formControlName="speedingDurationSeconds" /></label>
+      @if (vehicleForm.controls.speedingDurationSeconds.touched && vehicleForm.controls.speedingDurationSeconds.invalid) {
+        <p class="error" role="alert">{{ constants.validation.duration }}</p>
+      }
+      <label>Stop duration (seconds)<input type="number" step="1" formControlName="stopDurationSeconds" /></label>
+      @if (vehicleForm.controls.stopDurationSeconds.touched && vehicleForm.controls.stopDurationSeconds.invalid) {
+        <p class="error" role="alert">{{ constants.validation.duration }}</p>
+      }
+      <button type="submit" [disabled]="saving">{{ saving ? 'Saving…' : 'Save vehicle settings' }}</button>
+    </fieldset>
+  </form>
+} @else if (global) {
+  <form [formGroup]="globalForm" (ngSubmit)="saveGlobal()">
+    <fieldset [disabled]="saving">
+      <legend>Global settings — both vehicles</legend>
+      <label>Stop radius (metres)<input type="number" step="any" formControlName="stopRadiusMeters" /></label>
+      @if (globalForm.controls.stopRadiusMeters.touched && globalForm.controls.stopRadiusMeters.invalid) {
+        <p class="error" role="alert">{{ constants.validation.positive }}</p>
+      }
+      <p>{{ constants.messages.futureStops }}</p>
+      <button type="submit" [disabled]="saving">{{ saving ? 'Saving…' : 'Save global settings' }}</button>
+    </fieldset>
+  </form>
+}
+@if (error) {
+  <p class="error" role="alert">{{ error }}</p>
+}
+@if (saved) {
+  <p role="status">{{ constants.messages.saved }}</p>
+}

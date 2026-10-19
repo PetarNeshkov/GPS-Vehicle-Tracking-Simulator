@@ -13,7 +13,20 @@ public sealed class VehiclesController(TrackingService tracking, TrackingSession
     [ProducesResponseType<TrackingSnapshotResponse>(StatusCodes.Status200OK)]
     public ActionResult<TrackingSnapshotResponse> Get()
         => new TrackingSnapshotResponse(session.Id,
-            tracking.GetSnapshots().Select(snapshot => snapshot.ToResponse()).ToArray()).ToOkResult();
+            tracking.GetSnapshots()
+                            .Select(snapshot => snapshot.ToResponse())
+                            .ToArray(),
+            tracking.GetGlobalSettings().ToResponse())
+            .ToOkResult();
+
+    [HttpGet(ApiRoutes.VehicleSettings)]
+    public IActionResult GetSettings(string id)
+        => tracking.GetVehicle(id).ToVehicleSettingsResult(this);
+
+    [HttpPut(ApiRoutes.VehicleSettings)]
+    public async Task<IActionResult> UpdateSettings(string id, UpdateVehicleSettingsRequest request)
+        => (await tracking.UpdateSettingsAsync(id, request.ToSettings()))
+            .ToSettingsResult(this, snapshot => new VehicleUpdatedEvent(session.Id, snapshot.ToResponse()));
 
     [HttpPost(ApiRoutes.VehicleSamples)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

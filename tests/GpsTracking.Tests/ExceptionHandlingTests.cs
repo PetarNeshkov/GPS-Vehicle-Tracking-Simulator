@@ -51,6 +51,15 @@ public sealed class ExceptionHandlingTests
 
     private sealed class FailingTrackingStore : ITrackingStore
     {
+        public VehicleSnapshot? UpdateSettings(string vehicleId, VehicleSettings settings, DateTimeOffset changedAt)
+            => throw new InvalidOperationException(InternalFailureMessage);
+
+        public GlobalSettingsSnapshot GetGlobalSettings()
+            => throw new InvalidOperationException(InternalFailureMessage);
+
+        public GlobalSettingsSnapshot UpdateGlobalSettings(GlobalSettings settings)
+            => throw new InvalidOperationException(InternalFailureMessage);
+
         public SampleAppendResult AppendWithSnapshot(GpsSample sample, DateTimeOffset receivedAt)
             => throw new InvalidOperationException(InternalFailureMessage);
 

@@ -10,4 +10,10 @@ public interface ITrackingStore
     SampleAppendResult AppendWithSnapshot(GpsSample sample, DateTimeOffset receivedAt);
 
     IReadOnlyList<VehicleSnapshot> GetSnapshots();
+
+    VehicleSnapshot? UpdateSettings(string vehicleId, VehicleSettings settings, DateTimeOffset changedAt);
+
+    GlobalSettingsSnapshot GetGlobalSettings();
+
+    GlobalSettingsSnapshot UpdateGlobalSettings(GlobalSettings settings);
 }

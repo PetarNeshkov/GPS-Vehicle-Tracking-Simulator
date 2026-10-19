@@ -1,3 +1,5 @@
+import { TrackingAlert, VehicleSettings } from './tracking-settings';
+
 export interface GpsSample {
   readonly timestamp: string;
   readonly latitude: number;
@@ -7,6 +9,8 @@ export interface GpsSample {
 }
 
 export interface VehicleSnapshot {
+  readonly settings?: VehicleSettings;
+  readonly alerts?: readonly TrackingAlert[];
   readonly id: string;
   readonly name: string;
   readonly latestSample: GpsSample | null;

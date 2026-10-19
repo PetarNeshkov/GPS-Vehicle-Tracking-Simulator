@@ -5,13 +5,14 @@ import { provideZoneChangeDetection } from '@angular/core';
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { TRACKING } from '../../core/constants/tracking.constants';
 import { TrackingDashboardComponent } from './tracking-dashboard.component';
+import { SettingsEditorComponent } from './settings-editor.component';
 import { TrackingConnectionService } from '../../core/services/tracking-connection.service';
 import { TrackingConnectionStub } from '../../core/services/tracking-connection.stub';
 
 describe('TrackingDashboardComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [CommonModule],
+      imports: [CommonModule, SettingsEditorComponent],
       declarations: [TrackingDashboardComponent],
       providers: [provideZoneChangeDetection(), provideHttpClient(), provideHttpClientTesting(),
         { provide: TrackingConnectionService, useClass: TrackingConnectionStub }]

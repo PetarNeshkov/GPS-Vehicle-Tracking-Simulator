@@ -1,6 +1,6 @@
 # GPS Vehicle Tracking Simulator
 
-M2 connects the simulator, API and Angular dashboard with live SignalR updates. Two vehicles independently
+M3 adds speeding alerts and live settings to the simulator, API and Angular dashboard. Two vehicles independently
 follow deterministic routes, supplying speed and heading at intervals of at least
 10 seconds. Angular receives live vehicle snapshots and displays a simplified
 coordinate map. REST loads initial/reconnected state; regular polling is removed.
@@ -102,7 +102,7 @@ No startup ordering is required: frontend connection attempts retry until the AP
 and a failed initial simulator delivery is followed by a fresh sample on its next interval.
 Avoid starting a second copy while ports 5078 or 4200 are already in use.
 
-### Verify M2 in Rider
+### Verify movement and live synchronization in Rider
 
 1. Start API and frontend first: both cards should be waiting for GPS data.
    `GET http://localhost:5078/api/vehicles` returns a session ID and two empty snapshots.
@@ -121,13 +121,33 @@ Avoid starting a second copy while ports 5078 or 4200 are already in use.
    after reconnection, and no periodic two-second snapshot requests. Failed REST
    synchronization retries after two seconds until successful.
 
-Run `npm ci` after pulling M2 to install the pinned SignalR client. Restart the API
+Run `npm ci` after pulling M3 to install Angular Forms alongside the SignalR client. Restart the API
 and frontend together because the snapshot response shape changed. If a running
 Debug process locks build output, stop it before rebuilding, or run tests with
 `--configuration Release`.
 
-The map uses fixed demo bounds, not a geographic basemap. M2 does not include
-alert rules, stops/trips, history display or editable settings.
+### Demonstrate M3 speeding and settings
+
+1. Start **GPS Tracking — All** and open the dashboard. Each vehicle card has
+   independent speed/duration settings; the global stop radius appears once below.
+2. For Vehicle 1 (42 km/h), save a 40 km/h limit and 30-second speeding duration.
+   Once retained qualifying observations cover 30 seconds, one alert appears.
+   If enough history already exists, reevaluation can alert immediately on save.
+3. Continued speeding produces no duplicate alerts. Save a limit above 42 km/h to
+   invalidate the current episode, then lower it again to demonstrate reevaluation.
+   Previously generated alerts remain visible with their original thresholds.
+4. For the exact 20-to-15-second case, start a fresh backend session and set Vehicle
+   1's limit to 40 before starting the simulator. At three samples (roughly 20 seconds
+   coverage), change duration from 30 to 15. The alert uses the third sample's GPS time.
+5. Refresh the browser or disconnect/reconnect: saved settings and alert history
+   return from REST. Restarting the backend resets both to a new session.
+
+Settings updates use last-write-wins ordering; newer revisions protect displayed
+state. Unsaved form edits survive live updates. Stop duration and global radius
+are validated and saved in M3; their movement/segment effects arrive in M5.
+
+The map uses fixed demo bounds, not a geographic basemap. Geofencing, stop/trip
+detection and raw history display remain future milestones.
 
 ## Configuration
 
@@ -144,8 +164,8 @@ elapsed time, carrying distance across vertices of its closed local path.
 
 Each vehicle starts with 80 km/h, 30-second speeding duration and 180-second stop
 duration. The evaluator confirmed a **global** 10-metre default stop radius.
-Current M1 seeds still store radius per vehicle; M3 will move it into global
-settings, and M5 will implement spatial stop detection. The synthetic geofences are
+Radius is configured under `Tracking:GlobalSettings:StopRadiusMeters`; it is no
+longer a vehicle setting. M5 will implement spatial stop detection. The synthetic geofences are
 Sofia West (latitude 42.695–42.700, longitude 23.315–23.320) and Sofia East
 (latitude 42.695–42.700, longitude 23.325–23.330). Geofence rules are deferred to M4.
 
@@ -170,7 +190,8 @@ dotnet run --project src/GpsTracking.Simulator -- --Simulator:TickIntervalSecond
 If changing the API port, update its launch profile, simulator backend URL and
 frontend proxy target together. If changing the frontend port, update the API's
 `Frontend:Origin` as well. Restart processes after startup configuration changes;
-live per-vehicle and global settings are an M3 feature.
+the dashboard's live settings update the current in-memory session immediately.
+The startup configuration supplies defaults again after backend restart.
 
 ## Architecture, status and limitations
 
@@ -179,8 +200,8 @@ live per-vehicle and global settings are an M3 feature.
 
 The evaluator confirmed the global stop radius, routes ending at the start of a
 confirmed stop and restarting when movement resumes, and full elapsed speeding
-windows (four observations at 00/10/20/30 seconds). These rules remain future
-milestone work. The fixed stop anchor and geofence initialization details remain
+windows (four observations at 00/10/20/30 seconds). Speeding is implemented;
+route/stop rules remain future milestone work. The fixed stop anchor and geofence initialization details remain
 documented implementation defaults. Delivery is local; simulator buffering and
 replay after failed deliveries are explicitly out of scope.
 Tracking state is session-only and local to one backend instance. Raw history is

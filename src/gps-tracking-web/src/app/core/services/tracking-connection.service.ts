@@ -3,6 +3,7 @@ import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { REALTIME } from '../constants/realtime.constants';
 import { TrackingConnectionState, VehicleUpdatedEvent } from '../models/tracking-events';
+import { GlobalSettingsEvent } from '../models/tracking-settings';
 
 export const TRACKING_CONNECTION_FACTORY = new InjectionToken<() => HubConnection>(
   'Tracking connection factory', {
@@ -20,29 +21,48 @@ export const TRACKING_CONNECTION_FACTORY = new InjectionToken<() => HubConnectio
 export class TrackingConnectionService implements OnDestroy {
   private readonly createConnection = inject(TRACKING_CONNECTION_FACTORY);
   private readonly updates = new Subject<VehicleUpdatedEvent>();
+  private readonly globalUpdates = new Subject<GlobalSettingsEvent>();
   private readonly state = new BehaviorSubject<TrackingConnectionState>('stopped');
   private connection?: HubConnection;
   private retry?: ReturnType<typeof setTimeout>;
 
   readonly updates$ = this.updates.asObservable();
+  readonly globalUpdates$ = this.globalUpdates.asObservable();
   readonly state$ = this.state.asObservable();
 
   start(): void {
-    if (this.connection) return;
+    if (this.connection) {
+      return;
+    }
+
     const connection = this.createConnection();
     this.connection = connection;
+    connection.on(REALTIME.globalSettingsUpdatedEvent, (event: GlobalSettingsEvent) => {
+      if (this.connection === connection) {
+        this.globalUpdates.next(event);
+      }
+    });
     connection.on(REALTIME.vehicleUpdatedEvent, (event: VehicleUpdatedEvent) => {
-      if (this.connection === connection) this.updates.next(event);
+      if (this.connection === connection) {
+        this.updates.next(event);
+      }
     });
     connection.onreconnecting(() => {
-      if (this.connection === connection) this.state.next('reconnecting');
+      if (this.connection === connection) {
+        this.state.next('reconnecting');
+      }
     });
     connection.onreconnected(() => {
-      if (this.connection === connection) this.state.next('connected');
+      if (this.connection === connection) {
+        this.state.next('connected');
+      }
     });
     connection.onclose(() => {
-      if (this.connection === connection) this.scheduleRetry(connection);
+      if (this.connection === connection) {
+        this.scheduleRetry(connection);
+      }
     });
+
     this.state.next('connecting');
     void this.connect(connection);
   }
@@ -53,6 +73,7 @@ export class TrackingConnectionService implements OnDestroy {
     clearTimeout(this.retry);
     this.retry = undefined;
     if (connection) {
+      connection.off(REALTIME.globalSettingsUpdatedEvent);
       connection.off(REALTIME.vehicleUpdatedEvent);
       // Stop aborts pending starts/reconnects. Old callbacks are guarded by identity.
       void connection.stop().catch(() => undefined);
@@ -63,9 +84,13 @@ export class TrackingConnectionService implements OnDestroy {
   private async connect(connection: HubConnection): Promise<void> {
     try {
       await connection.start();
-      if (this.connection === connection) this.state.next('connected');
+      if (this.connection === connection) {
+        this.state.next('connected');
+      }
     } catch {
-      if (this.connection === connection) this.scheduleRetry(connection);
+      if (this.connection === connection) {
+        this.scheduleRetry(connection);
+      }
     }
   }
 
@@ -73,13 +98,16 @@ export class TrackingConnectionService implements OnDestroy {
     clearTimeout(this.retry);
     this.state.next('reconnecting');
     this.retry = setTimeout(() => {
-      if (this.connection === connection) void this.connect(connection);
+      if (this.connection === connection) {
+        void this.connect(connection);
+      }
     }, REALTIME.retryDelayMs);
   }
 
   ngOnDestroy(): void {
     this.stop();
     this.updates.complete();
+    this.globalUpdates.complete();
     this.state.complete();
   }
 }

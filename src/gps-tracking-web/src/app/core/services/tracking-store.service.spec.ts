@@ -30,6 +30,26 @@ describe('TrackingStore live synchronization', () => {
   });
   afterEach(() => { store.stop(); http.verify(); });
 
+  it('merges alert IDs independently of vehicle revision and restores global settings on restart', () => {
+    store.start();
+    const alert = { id: 'alert-1', vehicleId: 'vehicle-1', type: 'Speeding',
+      occurredAt: '2026-10-19T12:00:30Z', createdAt: '2026-10-19T12:00:31Z',
+      speedKmh: 85, speedLimitKmh: 80, speedingDurationSeconds: 30 };
+    connection.globalUpdates$.next({ sessionId: 'first', settings: { stopRadiusMeters: 25, revision: 2 } });
+    http.expectOne(TRACKING.vehiclesPath).flush({ ...envelope(5), globalSettings: { stopRadiusMeters: 10, revision: 0 } });
+    connection.updates$.next({ sessionId: 'first', vehicle: { ...vehicle(3), alerts: [alert] } });
+    connection.updates$.next({ sessionId: 'first', vehicle: { ...vehicle(3), alerts: [alert] } });
+    expect(store.alerts()).toEqual([alert]);
+    expect(store.vehicles()[0].revision).toBe(5);
+    expect(store.globalSettings()?.stopRadiusMeters).toBe(25);
+
+    connection.state$.next('reconnecting');
+    connection.state$.next('connected');
+    http.expectOne(TRACKING.vehiclesPath).flush({ ...envelope(0, 'second'), globalSettings: { stopRadiusMeters: 10, revision: 0 } });
+    expect(store.alerts()).toEqual([]);
+    expect(store.globalSettings()?.stopRadiusMeters).toBe(10);
+  });
+
   it('buffers updates during REST loading, rejects older events and does not poll', fakeAsync(() => {
     store.start(); store.start();
     expect(connection.startCalls).toBe(1);
