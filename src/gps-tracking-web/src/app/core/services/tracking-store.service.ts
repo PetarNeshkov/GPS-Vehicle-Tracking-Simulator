@@ -224,6 +224,11 @@ export class TrackingStore implements OnDestroy {
   }
 
   private receiveGlobal(event: GlobalSettingsEvent): void {
+    // Vehicle revisions are independent from the global revision; merge all captures.
+    for (const vehicle of event.vehicles ?? []) {
+      this.receive({ sessionId: event.sessionId, vehicle });
+    }
+
     if (this.synchronizing) {
       const previous = this.bufferedGlobal.get(event.sessionId);
       if (!previous || previous.settings.revision < event.settings.revision)

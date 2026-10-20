@@ -17,5 +17,5 @@ public sealed class SettingsController(GetGlobalSettingsHandler settings, Update
     [HttpPut]
     public async Task<IActionResult> Update(UpdateGlobalSettingsRequest request)
         => (await updateSettings.HandleAsync(request.ToSettings()))
-            .ToSettingsResult(this, snapshot => new GlobalSettingsEvent(session.Id, snapshot.ToResponse()));
+            .ToSettingsResult(this, snapshot => snapshot.ToEvent(session.Id));
 }

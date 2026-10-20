@@ -29,7 +29,8 @@ public sealed class GeofenceRule(GeofenceDefinition definition)
         }
 
         var next = observations.Count(value => value) >= GeofenceConstants.RequiredMajority
-            ? GeofenceState.Inside : GeofenceState.Outside;
+            ? GeofenceState.Inside
+            : GeofenceState.Outside;
         var previous = state;
         state = next;
 
@@ -39,7 +40,8 @@ public sealed class GeofenceRule(GeofenceDefinition definition)
         }
 
         var type = next == GeofenceState.Inside
-            ? GeofenceConstants.EnteredAlertType : GeofenceConstants.ExitedAlertType;
+            ? GeofenceConstants.EnteredAlertType
+            : GeofenceConstants.ExitedAlertType;
 
         return new TrackingAlert(Guid.NewGuid(), sample.VehicleId, type, sample.Timestamp,
             createdAt, null, null, null, definition.Id, definition.Name);

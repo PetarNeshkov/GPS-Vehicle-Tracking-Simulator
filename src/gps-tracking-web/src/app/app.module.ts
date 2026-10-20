@@ -1,3 +1,4 @@
+import { HistoryViewerComponent } from './features/tracking/history-viewer.component';
 import { NgModule, provideZoneChangeDetection } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { provideHttpClient } from '@angular/common/http';
@@ -13,7 +14,8 @@ import { AppComponent } from './app.component';
   ],
   imports: [
     BrowserModule,
-    SettingsEditorComponent
+    SettingsEditorComponent,
+    HistoryViewerComponent
   ],
   providers: [provideZoneChangeDetection({ eventCoalescing: true }), provideHttpClient()],
   bootstrap: [AppComponent]

@@ -7,10 +7,10 @@ namespace GpsTracking.Infrastructure.Storage;
 
 public sealed class InMemoryTrackingStore : ITrackingStore
 {
-    // The dictionary is constructed once. Each entry owns its mutation gate.
+    // One gate keeps global radius changes atomic with both vehicles and reads.
     private readonly Dictionary<string, VehicleSession> sessions;
     private readonly IReadOnlyList<GeofenceDefinition> geofences;
-    private readonly object globalGate = new();
+    private readonly object gate = new();
     private GlobalSettingsSnapshot globalSettings;
 
     public InMemoryTrackingStore(IEnumerable<VehicleDefinition> vehicles, GlobalSettings? settings = null,
@@ -32,7 +32,7 @@ public sealed class InMemoryTrackingStore : ITrackingStore
             return new(SampleAcceptance.UnknownVehicle);
         }
 
-        lock (session.Gate)
+        lock (gate)
         {
             if (session.History.Count > 0 && sample.Timestamp <= session.History[^1].Timestamp)
             {
@@ -56,6 +56,7 @@ public sealed class InMemoryTrackingStore : ITrackingStore
                 }
             }
 
+            session.Movement.Observe(sample, globalSettings.Settings.StopRadiusMeters, session.Settings.StopDurationSeconds);
             session.Revision++;
 
             return new(SampleAcceptance.Accepted, Snapshot(session));
@@ -67,16 +68,29 @@ public sealed class InMemoryTrackingStore : ITrackingStore
 
     public IReadOnlyList<VehicleSnapshot> GetSnapshots()
     {
-        var snapshots = new List<VehicleSnapshot>(sessions.Count);
-        foreach (var session in sessions.Values)
-        {
-            lock (session.Gate)
-            {
-                snapshots.Add(Snapshot(session));
-            }
-        }
+        lock (gate) return sessions.Values.Select(Snapshot).ToArray();
+    }
 
-        return snapshots.AsReadOnly();
+    public TrackingState GetState()
+    {
+        lock (gate)
+        {
+            var vehicleSnapshots = sessions.Values
+                .Select(Snapshot)
+                .ToArray();
+
+            return new TrackingState(vehicleSnapshots, globalSettings);
+        }
+    }
+
+    public HistorySnapshot? GetHistory(string vehicleId)
+    {
+        lock (gate)
+        {
+            return sessions.TryGetValue(vehicleId, out var session)
+                ? new HistorySnapshot(vehicleId, session.Revision, session.History.ToArray())
+                : null;
+        }
     }
 
     public VehicleSnapshot? UpdateSettings(string vehicleId, VehicleSettings settings, DateTimeOffset changedAt)
@@ -86,7 +100,7 @@ public sealed class InMemoryTrackingStore : ITrackingStore
             return null;
         }
 
-        lock (session.Gate)
+        lock (gate)
         {
             if (session.Settings == settings)
             {
@@ -95,6 +109,7 @@ public sealed class InMemoryTrackingStore : ITrackingStore
 
             var speedingChanged = session.Settings.SpeedLimitKmh != settings.SpeedLimitKmh
                 || session.Settings.SpeedingDurationSeconds != settings.SpeedingDurationSeconds;
+            var stopChanged = session.Settings.StopDurationSeconds != settings.StopDurationSeconds;
             session.Settings = settings;
 
             if (speedingChanged)
@@ -106,6 +121,11 @@ public sealed class InMemoryTrackingStore : ITrackingStore
                 }
             }
 
+            if (stopChanged)
+            {
+                session.Movement.Reevaluate(globalSettings.Settings.StopRadiusMeters, settings.StopDurationSeconds);
+            }
+
             session.Revision++;
 
             return Snapshot(session);
@@ -114,7 +134,7 @@ public sealed class InMemoryTrackingStore : ITrackingStore
 
     public GlobalSettingsSnapshot GetGlobalSettings()
     {
-        lock (globalGate)
+        lock (gate)
         {
             return globalSettings;
         }
@@ -122,14 +142,19 @@ public sealed class InMemoryTrackingStore : ITrackingStore
 
     public GlobalSettingsSnapshot UpdateGlobalSettings(GlobalSettings settings)
     {
-        lock (globalGate)
+        lock (gate)
         {
             if (globalSettings.Settings != settings)
             {
                 globalSettings = new GlobalSettingsSnapshot(settings, globalSettings.Revision + 1);
+                foreach (var session in sessions.Values)
+                {
+                    session.Movement.Reevaluate(settings.StopRadiusMeters, session.Settings.StopDurationSeconds);
+                    session.Revision++;
+                }
             }
 
-            return globalSettings;
+            return globalSettings with { Vehicles = sessions.Values.Select(Snapshot).ToArray() };
         }
     }
 
@@ -137,18 +162,6 @@ public sealed class InMemoryTrackingStore : ITrackingStore
         => new(session.Vehicle.Id, session.Vehicle.Name,
             session.History.Count == 0 ? null : session.History[^1],
             session.LastReceivedAt, session.History.Count, session.Revision, session.Settings,
-            session.Alerts.ToArray(), session.Geofences.Select(rule => rule.Membership).ToArray());
-
-    private sealed class VehicleSession(VehicleDefinition vehicle, IReadOnlyList<GeofenceDefinition> geofences)
-    {
-        public IReadOnlyList<GeofenceRule> Geofences { get; } = geofences.Select(definition => new GeofenceRule(definition)).ToArray();
-        public object Gate { get; } = new();
-        public VehicleDefinition Vehicle { get; } = vehicle;
-        public List<GpsSample> History { get; } = [];
-        public VehicleSettings Settings { get; set; } = vehicle.Settings;
-        public SpeedingRule Speeding { get; } = new();
-        public List<TrackingAlert> Alerts { get; } = [];
-        public DateTimeOffset? LastReceivedAt { get; set; }
-        public long Revision { get; set; }
-    }
+            session.Alerts.ToArray(), session.Geofences.Select(rule => rule.Membership).ToArray(),
+            session.Movement.Movement, session.Movement.Segments);
 }

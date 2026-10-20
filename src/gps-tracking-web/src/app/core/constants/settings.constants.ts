@@ -1,3 +1,4 @@
+import { MOVEMENT } from './movement.constants';
 export const SETTINGS = {
   maximumDurationSeconds: 2_147_483_647,
   validation: {
@@ -7,6 +8,6 @@ export const SETTINGS = {
   messages: {
     saveFailed: 'Settings could not be saved. Check the values and connection, then try again.',
     saved: 'Settings saved.',
-    futureStops: 'Stop duration and radius are saved now; stop detection will be available in M5.'
+    stopExplanation: MOVEMENT.stopsEnabled
   }
 } as const;

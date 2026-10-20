@@ -1,3 +1,4 @@
+using System.Text.Json;
 using GpsTracking.Application.Tracking;
 using GpsTracking.Domain.Models;
 using GpsTracking.Infrastructure.Storage;
@@ -38,7 +39,8 @@ public sealed class TrackingStoreTests
         Assert.Equal(SampleAcceptance.UnknownVehicle, store.Append(Sample("unknown", 20), Start));
         Assert.Equal(SampleAcceptance.TimestampNotNewer, store.Append(Sample("vehicle-1", 10), Start));
         Assert.Equal(SampleAcceptance.TimestampNotNewer, store.Append(Sample("vehicle-1", 0), Start));
-        Assert.Equal(before, store.GetSnapshots());
+        Assert.Equal(JsonSerializer.Serialize(before),
+            JsonSerializer.Serialize(store.GetSnapshots()));
 
         store.Append(Sample("vehicle-1", 20), Start.AddSeconds(20));
         Assert.Equal(1, before[0].SampleCount);

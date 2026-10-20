@@ -28,6 +28,9 @@ public static class ServiceCollectionExtensions
             provider.GetRequiredService<IOptions<TrackingOptions>>().Value.Geofences));
         services.AddSingleton<SubmitSampleHandler>();
         services.AddSingleton<GetSnapshotsHandler>();
+        services.AddSingleton<GetHistoryHandler>();
+        services.AddSingleton<GetSegmentsHandler>();
+        services.AddSingleton<GetTrackingStateHandler>();
         services.AddSingleton<GetVehicleSettingsHandler>();
         services.AddSingleton<GetAlertsHandler>();
         services.AddSingleton<GetGeofencesHandler>();

@@ -144,7 +144,7 @@ Debug process locks build output, stop it before rebuilding, or run tests with
 
 Settings updates use last-write-wins ordering; newer revisions protect displayed
 state. Unsaved form edits survive live updates. Stop duration and global radius
-are validated and saved in M3; their movement/segment effects arrive in M5.
+now reevaluate unfinished stop/route state immediately; completed boundaries remain fixed.
 
 ### Demonstrate M4 geofencing
 
@@ -169,8 +169,37 @@ are included in `GET /api/vehicles`, so the dashboard needs no extra polling req
 Geofences are startup configuration, not editable settings. The CQRS handlers in
 Application separate reads from writes without MediatR or a separate database.
 
-The map uses fixed demo bounds, not a geographic basemap. Stop/trip detection and
-raw history display remain future milestones.
+### Demonstrate M5 stops and separate routes
+
+The normal simulator routes keep moving. For a focused stop demonstration, start
+the **GPS Tracking API** and **GPS Tracking Frontend** configurations separately in
+Rider with a fresh API session and leave the simulator stopped. Open
+`http://localhost:4200`, then run from the repository root:
+
+```powershell
+./scripts/Verify-M5.ps1
+```
+
+The script sets Vehicle 1's stop duration to 20 seconds and sends seven observations
+at real ten-second intervals (about one minute). It moves, stays at one position,
+then resumes. Watch Possible stop become Stopped. The completed route ends at the
+first stationary point; the next route starts at the resumption point. Its line
+appears only after a second point arrives. The script verifies two routes and seven
+raw observations. Expand **Routes** and **Raw GPS history** in the vehicle card;
+history loads on demand and labels its captured revision. Refresh it for newer data.
+
+Defaults remain 180 seconds per vehicle and a global 10-metre radius. GPS time and
+distance from a fixed anchor determine stops; reported speed does not. Settings
+changes reevaluate the latest unfinished candidate. Completed routes never reopen.
+If shrinking the radius excludes the latest point of a confirmed stop, movement
+resumes at that latest observed point. An initially stationary vehicle has no
+completed driven route. A candidate stop keeps an open route until confirmation.
+
+`GET /api/vehicles/{id}/history` includes every accepted sample; `/segments` returns
+separate route point lists. Both responses include session ID and vehicle revision.
+Unknown vehicles return 404. Refresh/reconnect preserves routes; API restart clears
+the session. The map remains a simplified coordinate view. Full simulator scenarios
+and further UI refinement remain M6.
 
 ## Configuration
 
@@ -188,7 +217,7 @@ elapsed time, carrying distance across vertices of its closed local path.
 Each vehicle starts with 80 km/h, 30-second speeding duration and 180-second stop
 duration. The evaluator confirmed a **global** 10-metre default stop radius.
 Radius is configured under `Tracking:GlobalSettings:StopRadiusMeters`; it is no
-longer a vehicle setting. M5 will implement spatial stop detection. The synthetic geofences are
+longer a vehicle setting. M5 uses it for spatial stop detection. The synthetic geofences are
 Sofia West (latitude 42.695–42.700, longitude 23.315–23.320) and Sofia East
 (latitude 42.695–42.700, longitude 23.325–23.330). M4 evaluates these rectangles using the documented three-observation majority.
 
@@ -223,8 +252,8 @@ The startup configuration supplies defaults again after backend restart.
 
 The evaluator confirmed the global stop radius, routes ending at the start of a
 confirmed stop and restarting when movement resumes, and full elapsed speeding
-windows (four observations at 00/10/20/30 seconds). Speeding is implemented;
-route/stop rules remain future milestone work. The fixed stop anchor and geofence initialization details remain
+windows (four observations at 00/10/20/30 seconds). Speeding, geofences and stop/route
+rules are implemented. The fixed stop anchor and geofence initialization details remain
 documented implementation defaults. Delivery is local; simulator buffering and
 replay after failed deliveries are explicitly out of scope.
 Tracking state is session-only and local to one backend instance. Raw history is

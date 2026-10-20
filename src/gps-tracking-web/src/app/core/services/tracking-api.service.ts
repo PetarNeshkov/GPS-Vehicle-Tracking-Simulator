@@ -1,3 +1,4 @@
+import { HistorySnapshot } from '../models/movement';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
@@ -16,6 +17,10 @@ export class TrackingApiService {
 
   updateGlobalSettings(stopRadiusMeters: number): Observable<GlobalSettingsEvent> {
     return this.api.put<GlobalSettingsEvent>(TRACKING.settingsPath, { stopRadiusMeters });
+  }
+
+  getHistory(id: string): Observable<HistorySnapshot> {
+    return this.api.get<HistorySnapshot>(TRACKING.vehicleHistoryPath(id));
   }
 
   getSnapshots(): Observable<TrackingSnapshot> {

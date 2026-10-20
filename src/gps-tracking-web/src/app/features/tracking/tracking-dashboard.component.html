@@ -25,6 +25,14 @@
         class="geofence-label">{{ zone.name }}</text>
     }
     @for (vehicle of store.vehicles(); track vehicle.id; let index = $index) {
+      @for (segment of vehicle.segments ?? []; track segment.id) {
+        @if (segment.points.length >= movement.minimumLinePoints) {
+          <polyline class="route-line" [attr.points]="segmentPoints(segment)" fill="none"
+            [attr.stroke]="colors[index % colors.length]" stroke-width="3" stroke-opacity="0.65" />
+        }
+      }
+    }
+    @for (vehicle of store.vehicles(); track vehicle.id; let index = $index) {
       @if (vehicle.latestSample; as sample) {
         <g [attr.transform]="markerTransform(sample)">
           <title>{{ vehicle.name }}: {{ sample.speedKmh }} km/h, heading {{ sample.heading }}°</title>
@@ -35,7 +43,7 @@
       }
     }
   </svg>
-  <p>{{ geofence.messages.confirmation }}</p>
+  <p class="geofence-note">{{ geofence.messages.confirmation }}</p>
 </section>
 
 <section class="vehicle-grid" aria-label="Vehicle tracking details">
@@ -78,6 +86,22 @@
           </div>
         }
       </dl>
+      @if (vehicle.movement; as status) {
+        <p><strong>{{ movement.states[status.state] }}</strong></p>
+        @if (status.stopStartedAt) {
+          <p>Stop onset: {{ status.stopStartedAt | date:'medium' }};
+            {{ status.stopElapsedSeconds | number:'1.0-0' }} seconds of GPS coverage.</p>
+        }
+      }
+      <details>
+        <summary>Routes ({{ vehicle.segments?.length ?? 0 }})</summary>
+        @for (segment of vehicle.segments ?? []; track segment.id) {
+          <p>{{ segment.startedAt | date:'medium' }} ?
+            {{ segment.endedAt ? (segment.endedAt | date:'medium') : 'In progress' }}
+            ({{ segment.points.length }} points)</p>
+        }
+      </details>
+      <app-history-viewer [vehicleId]="vehicle.id" [sessionId]="store.currentSession()" />
       <app-settings-editor [vehicle]="vehicle" [sessionId]="store.currentSession()" />
     </article>
   }
@@ -85,7 +109,7 @@
 
 <app-settings-editor [global]="store.globalSettings()" [sessionId]="store.currentSession()" />
 
-<section aria-label="Tracking alerts">
+<section class="alert-history" aria-label="Tracking alerts">
   <h2>Alert history</h2>
   @if (store.alerts().length === 0) {
     <p>No alerts in this session.</p>

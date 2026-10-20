@@ -11,6 +11,10 @@ public interface ITrackingStore
 
     IReadOnlyList<VehicleSnapshot> GetSnapshots();
 
+    TrackingState GetState();
+
+    HistorySnapshot? GetHistory(string vehicleId);
+
     IReadOnlyList<GeofenceDefinition> GetGeofences();
 
     VehicleSnapshot? UpdateSettings(string vehicleId, VehicleSettings settings, DateTimeOffset changedAt);

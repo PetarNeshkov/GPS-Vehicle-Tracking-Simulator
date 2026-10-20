@@ -23,7 +23,36 @@ public static class TrackingMappingExtensions
             (snapshot.Settings ?? new VehicleSettings()).ToResponse(),
             (snapshot.Alerts ?? []).Select(alert => alert.ToResponse()).ToArray(),
             (snapshot.GeofenceMemberships ?? []).Select(membership =>
-                new GeofenceMembershipResponse(membership.GeofenceId, membership.State.ToString())).ToArray());
+                new GeofenceMembershipResponse(membership.GeofenceId, membership.State.ToString())).ToArray(),
+            snapshot.Movement is { } movement
+                ? new MovementResponse(movement.State.ToString(), movement.StopStartedAt, movement.StopElapsedSeconds) : null,
+            (snapshot.Segments ?? []).Select(segment => segment.ToResponse()).ToArray());
+
+    public static GpsSampleResponse ToResponse(this GpsSample sample)
+        => new(sample.Timestamp, sample.Latitude, sample.Longitude, sample.SpeedKmh, sample.Heading);
+
+    public static RouteSegmentResponse ToResponse(this RouteSegment segment)
+        => new(segment.Id, segment.StartedAt, segment.EndedAt, segment.Points.Select(point => point.ToResponse()).ToArray());
+
+    public static GlobalSettingsEvent ToEvent(this GlobalSettingsSnapshot snapshot, Guid sessionId)
+        => new(sessionId, snapshot.ToResponse(), snapshot.Vehicles?.Select(vehicle => vehicle.ToResponse()).ToArray());
+
+    public static TrackingSnapshotResponse ToResponse(this TrackingState state, Guid sessionId,
+        IReadOnlyList<GeofenceDefinition> geofences)
+        => new(sessionId, state.Vehicles.Select(vehicle => vehicle.ToResponse()).ToArray(),
+            state.GlobalSettings.ToResponse(), geofences.Select(zone => zone.ToResponse()).ToArray());
+
+    public static IActionResult ToHistoryResult(this HistorySnapshot? history, ControllerBase controller, Guid sessionId)
+        => history is null
+            ? controller.Problem(statusCode: StatusCodes.Status404NotFound, title: TrackingProblemConstants.UnknownVehicleTitle)
+            : new HistoryResponse(sessionId, history.VehicleId, history.Revision,
+                history.Samples.Select(sample => sample.ToResponse()).ToArray()).ToOkResult();
+
+    public static IActionResult ToSegmentsResult(this VehicleSnapshot? snapshot, ControllerBase controller, Guid sessionId)
+        => snapshot is null
+            ? controller.Problem(statusCode: StatusCodes.Status404NotFound, title: TrackingProblemConstants.UnknownVehicleTitle)
+            : new SegmentsResponse(sessionId, snapshot.Id, snapshot.Revision,
+                (snapshot.Segments ?? []).Select(segment => segment.ToResponse()).ToArray()).ToOkResult();
 
     public static GeofenceResponse ToResponse(this GeofenceDefinition definition)
         => new(definition.Id, definition.Name, definition.MinLatitude, definition.MaxLatitude,

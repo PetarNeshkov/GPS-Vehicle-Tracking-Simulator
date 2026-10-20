@@ -11,4 +11,6 @@ public sealed record VehicleSnapshot(
     long Revision,
     VehicleSettings? Settings = null,
     IReadOnlyList<TrackingAlert>? Alerts = null,
-    IReadOnlyList<GeofenceMembership>? GeofenceMemberships = null);
+    IReadOnlyList<GeofenceMembership>? GeofenceMemberships = null,
+    MovementSnapshot? Movement = null,
+    IReadOnlyList<RouteSegment>? Segments = null);

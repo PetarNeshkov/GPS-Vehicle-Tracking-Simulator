@@ -1,0 +1,24 @@
+<details>
+  <summary>Raw GPS history</summary>
+  <button type="button" (click)="load()" [disabled]="loading()">{{ loading() ? 'Loading…' : 'Load / refresh history' }}</button>
+  @if (error(); as message) {
+    <p role="alert">{{ message }}</p>
+  }
+  @if (history(); as data) {
+    <p>Snapshot at vehicle revision {{ data.revision }}. Refresh to include newer observations.</p>
+    <div class="history-table-container">
+      <table>
+        <thead><tr><th>GPS time</th><th>Latitude</th><th>Longitude</th><th>km/h</th></tr></thead>
+        <tbody>
+          @for (sample of data.samples; track sample.timestamp) {
+            <tr><td>{{ sample.timestamp | date:'medium' }}</td><td>{{ sample.latitude | number:'1.5-5' }}</td>
+              <td>{{ sample.longitude | number:'1.5-5' }}</td><td>{{ sample.speedKmh }}</td></tr>
+          }
+        </tbody>
+      </table>
+      @if (data.samples.length === 0) {
+        <p>No observations yet.</p>
+      }
+    </div>
+  }
+</details>

@@ -8,18 +8,20 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace GpsTracking.Api.Controllers;
 
-public sealed class VehiclesController(GetSnapshotsHandler snapshots, GetVehicleSettingsHandler vehicleSettings,
-    GetGlobalSettingsHandler globalSettings, UpdateVehicleSettingsHandler updateSettings,
+public sealed class VehiclesController(GetTrackingStateHandler trackingState, GetVehicleSettingsHandler vehicleSettings,
+    GetHistoryHandler history, GetSegmentsHandler segments, UpdateVehicleSettingsHandler updateSettings,
     SubmitSampleHandler submitSample, GetGeofencesHandler geofences, TrackingSession session) : BaseApiController
 {
     [HttpGet]
     [ProducesResponseType<TrackingSnapshotResponse>(StatusCodes.Status200OK)]
     public ActionResult<TrackingSnapshotResponse> Get()
-        => new TrackingSnapshotResponse(session.Id,
-            snapshots.Handle().Select(snapshot => snapshot.ToResponse()).ToArray(),
-            globalSettings.Handle().ToResponse(),
-            geofences.Handle().Select(geofence => geofence.ToResponse()).ToArray())
-            .ToOkResult();
+        => trackingState.Handle().ToResponse(session.Id, geofences.Handle()).ToOkResult();
+
+    [HttpGet(ApiRoutes.VehicleHistory)]
+    public IActionResult GetHistory(string id) => history.Handle(id).ToHistoryResult(this, session.Id);
+
+    [HttpGet(ApiRoutes.VehicleSegments)]
+    public IActionResult GetSegments(string id) => segments.Handle(id).ToSegmentsResult(this, session.Id);
 
     [HttpGet(ApiRoutes.VehicleSettings)]
     public IActionResult GetSettings(string id)

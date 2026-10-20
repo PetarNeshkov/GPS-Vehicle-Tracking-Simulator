@@ -1,0 +1,4 @@
+.history-table-container {
+  max-height: 240px;
+  overflow: auto;
+}

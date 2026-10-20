@@ -139,11 +139,11 @@ and heading. The route is the sole vehicle identifier. Success is 204; invalid
 payloads return 400, unknown vehicles 404 and non-newer timestamps 409, using
 ProblemDetails. Supplied speed and heading remain authoritative.
 
-The singleton store retains raw samples under a separate lock per vehicle.
+The singleton store retains raw samples under one shared state lock in M5.
 Timestamp acceptance, append, receipt time and revision increment are atomic.
 Reads return immutable snapshot copies, with null latest data before the first
-sample. Snapshots are individually consistent, not a transaction across vehicles.
-Raw history has no public endpoint in M1. Backend restart clears the session;
+sample. The synchronization query captures both vehicles and global settings together.
+M5 exposes raw history and separate route segments. Backend restart clears the session;
 browser refresh reads the existing session.
 
 ### M2 live synchronization
@@ -178,7 +178,7 @@ Equality or a lower speed ends the episode. One alert is recorded per episode.
 Alerts distinguish GPS occurrence time from backend creation time and retain the
 thresholds that produced them.
 
-Sample ingestion and vehicle settings changes use the same per-vehicle storage
+Sample ingestion and vehicle settings changes use the same shared storage
 gate. Settings changes reevaluate only the latest continuously qualifying suffix
 of retained samples. A 30-to-15-second change after 20 seconds can immediately
 produce an alert at the latest GPS timestamp. An already-alerted qualifying state
@@ -191,8 +191,8 @@ settings and cumulative alert history. `GET /api/alerts` exposes the session's
 combined history. `GET /api/vehicles/{id}/settings` returns a vehicle snapshot;
 `PUT` returns its session-tagged event. `GET`/`PUT /api/settings` return a global
 settings event with an independent revision. Global radius defaults to 10 metres
-and has its own storage gate. Stop duration and radius are saved in M3; spatial
-processing and coordinated stop reevaluation belong to M5.
+and uses the shared storage gate in M5. Stop duration and radius are applied to
+spatial processing and coordinated stop reevaluation.
 
 Publication occurs after locks are released. Vehicle settings and alerts reuse
 `VehicleUpdated`; global edits publish `GlobalSettingsUpdated`. Carrying cumulative
@@ -217,7 +217,7 @@ confirming GPS timestamp. Only accepted observations advance the windows. Settin
 changes do not reset geofence state. No geometry interpolation or inferred crossing
 is performed, and overlapping zones are evaluated independently.
 
-Speeding and geofence rules run under the same vehicle gate, before the single
+Speeding and geofence rules run under the same storage gate, before the single
 sample revision increment and immutable snapshot capture. One sample may produce
 multiple alerts. Membership arrays and cumulative alerts travel through the existing
 `VehicleUpdated` event; publication still happens after releasing the gate.
@@ -236,6 +236,43 @@ revisions. Stable alert IDs and backend session IDs preserve reconnect/reset beh
 Initial membership and inclusive rectangle edges remain documented defaults rather
 than additional evaluator confirmations. Route simulation tests verify the existing
 routes traverse both zones without changing speeds or the reporting interval.
+
+### M5 movement and route history
+
+Domain `MovementRule` tracks a fixed anchor using Haversine distance in metres.
+Positions on the radius boundary count as inside. Unknown means only one initial
+observation; leaving the radius establishes Moving, subsequent observations inside
+the anchor establish PossibleStop, and full GPS duration establishes Stopped.
+No server timer or reported speed confirms a stop. Missing telemetry does not
+advance the recorded duration. Slow drift eventually leaves the fixed anchor.
+
+Open routes retain candidate-stop points until confirmation. Confirmation closes
+at the anchor and excludes later stationary points from that route, preserving all
+raw samples. A subsequent position outside the stopped anchor starts a new route
+at that sample. IDs remain stable as open routes grow and close. Initially stationary
+observations do not create a completed driven route. Route snapshots expose read-only
+point copies, and the frontend draws each route independently only with two points.
+
+Duration/radius changes rebuild only the latest candidate within the unfinished
+route; historical unconfirmed stops are not replayed. Completed route IDs, points
+and boundaries are immutable. Increasing duration does not reopen a confirmed stop.
+For a confirmed stop, a changed radius is compared with the latest sample; if it is
+outside, start a new route at that sample, never invent an earlier crossing time.
+These settings/initialization details are documented implementation defaults.
+
+One shared store gate replaces separate vehicle/global locks for this two-vehicle
+assessment. Radius changes reevaluate both vehicles, increment their revisions and
+capture both snapshots together. `GlobalSettingsUpdated` and the global PUT response
+carry those vehicle captures; the frontend merges them independently by vehicle
+revision, including when the enclosing global event is older. All publication occurs
+after releasing the gate. Identical settings do not increment revisions. The normal
+sync query also captures global settings and both vehicles atomically.
+
+CQRS query handlers expose session/revision-tagged `/history` and `/segments` reads.
+The regular vehicle snapshot adds movement and cumulative route segments. This favors
+simple reconnect recovery over bounded payload sizes; in-memory history and outgoing
+snapshots grow with session length. Raw history loads on demand in a separate viewer,
+displays its captured revision, and cancels requests when the session changes.
 
 ## Communication and startup
 
@@ -292,7 +329,7 @@ raw history is unbounded for the short demo; production retention is out of scop
 The evaluator confirmed a globally configurable stop radius (default 10 metres),
 route boundaries at stop onset and movement resumption, and full elapsed speeding
 windows. M3 replaces per-vehicle radius seeds with global settings
-and `GET`/`PUT /api/settings`; M5 will apply radius changes to both vehicles' pending
+and `GET`/`PUT /api/settings`; M5 applies radius changes to both vehicles' pending
 stop state. Speed limit and speeding/stop durations remain per vehicle.
 Fixed stop anchors and geofence initialization remain
 implementation defaults rather than separately confirmed requirements.

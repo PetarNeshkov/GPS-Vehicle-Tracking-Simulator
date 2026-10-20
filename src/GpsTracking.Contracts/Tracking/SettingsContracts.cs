@@ -6,7 +6,10 @@ public sealed record VehicleSettingsResponse(double SpeedLimitKmh, int SpeedingD
 
 public sealed record GlobalSettingsResponse(double StopRadiusMeters, long Revision);
 
-public sealed record GlobalSettingsEvent(Guid SessionId, GlobalSettingsResponse Settings);
+public sealed record GlobalSettingsEvent(
+    Guid SessionId,
+    GlobalSettingsResponse Settings,
+    IReadOnlyList<VehicleSnapshotResponse>? Vehicles = null);
 
 public sealed record AlertResponse(Guid Id,
     string VehicleId,

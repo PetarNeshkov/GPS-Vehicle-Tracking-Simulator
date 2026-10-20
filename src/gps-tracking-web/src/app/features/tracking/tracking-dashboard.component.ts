@@ -1,4 +1,6 @@
 import {Component, inject, OnDestroy, OnInit} from '@angular/core';
+import { MOVEMENT } from '../../core/constants/movement.constants';
+import { RouteSegment } from '../../core/models/movement';
 import { GEOFENCE } from '../../core/constants/geofence.constants';
 import {TRACKING} from '../../core/constants/tracking.constants';
 import {GpsSample} from '../../core/models/vehicle-snapshot';
@@ -12,6 +14,7 @@ import {TrackingStore} from '../../core/services/tracking-store.service';
 })
 export class TrackingDashboardComponent implements OnInit, OnDestroy {
   protected readonly store = inject(TrackingStore);
+  protected readonly movement = MOVEMENT;
   protected readonly geofence = GEOFENCE;
   protected readonly colors = TRACKING.colors;
 
@@ -41,6 +44,10 @@ export class TrackingDashboardComponent implements OnInit, OnDestroy {
     const verticalRatio = latitudeOffset / latitudeRange;
 
     return verticalRatio * view.height;
+  }
+
+  protected segmentPoints(segment: RouteSegment): string {
+    return segment.points.map(point => `${this.x(point.longitude)},${this.y(point.latitude)}`).join(' ');
   }
 
   protected geofenceName(id: string): string {

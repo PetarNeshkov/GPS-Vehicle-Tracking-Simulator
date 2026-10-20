@@ -82,7 +82,7 @@ positive durations/radius and known vehicle IDs. Heading 360 is accepted.
 Raw observations are independent from derived route membership.
 
 Endpoints (ingestion, snapshots, alerts, settings and the live hub are implemented
-through M4; history and segments remain future work):
+through M5, including history and segments):
 
 - `POST /api/vehicles/{id}/samples`
 - `GET /api/vehicles`
@@ -103,7 +103,7 @@ and positive and appears once in a global UI section. Per-vehicle settings retai
 speed limit, speeding duration and stop duration. Spatial reevaluation becomes
 functional in M5.
 
-Process samples and settings under the same per-vehicle gate. Store accepted
+Process samples and settings under one shared store gate in M5. Store accepted
 observations, rule changes and alerts together in memory, increment a monotonic
 vehicle revision, take an immutable snapshot, then publish outside the gate.
 Do not expose mutable collections. Settings reevaluation does not wait for a
@@ -182,7 +182,13 @@ Explicit clarification acceptance checks:
   - [x] Geofence definitions API and frontend synchronization
   - [x] SVG rectangles, membership display and type-specific alerts
   - [x] Focused tests, real SignalR verification and Rider demo documentation
-- [ ] M5 — Global-radius stops and confirmed route boundaries
+- [x] M5 — Global-radius stops and confirmed route boundaries
+  - [x] Fixed-anchor distance rule and GPS duration confirmation
+  - [x] Stable route IDs, onset/resumption boundaries and preserved raw samples
+  - [x] Atomic radius reevaluation for both vehicles and duration reevaluation
+  - [x] CQRS history/segment APIs and expanded synchronization snapshots
+  - [x] Separate route lines, movement status and raw history inspection
+  - [x] Focused checks and real-time Rider demonstration script
 - [ ] M6 — Scenarios and UI completion
 - [ ] M7 — Integration and documentation
 - [ ] M8 — Clean-run verification and demo
@@ -553,3 +559,63 @@ was not automated. The documented geofence defaults remain implementation choice
 Stop/segment processing and history APIs remain M5. No later milestone implemented.
 
 Next milestone: **M5**, only after review/request.
+
+### 20 October 2026 — M5 completed; awaiting review
+
+Added Domain MovementRule and Haversine distance calculation. A fixed anchor and
+GPS elapsed time distinguish Unknown, Moving, PossibleStop and Stopped without
+using supplied speed. Confirmed stops close the current route at the anchor sample;
+resumption outside the radius opens a new route at that observed position. Raw
+history retains stationary observations. Initially stationary points do not become
+completed driven routes; route IDs remain stable as routes grow and close.
+
+Stop-duration edits reevaluate that vehicle's latest unfinished candidate. Global
+radius edits reevaluate both vehicles under a single shared store gate, replacing
+the earlier independent locks. Completed routes and historical alerts remain fixed.
+Already confirmed stops do not reopen when duration increases. A narrower radius
+excluding the latest sample resumes at that sample without guessing an earlier
+crossing. These are implementation defaults, not additional evaluator answers.
+
+Synchronization now captures both vehicles and global settings atomically. Global
+settings events and PUT responses include both vehicle snapshots, merged by vehicle
+revision independently of global revision. Publication stays outside the gate.
+Added CQRS history/segments reads with session/revision envelopes and 404 handling.
+Vehicle snapshots carry movement and cumulative segments for reconnect recovery.
+
+Angular draws separate route lines only for routes with two or more points, displays
+movement state and recorded stop coverage, and exposes route boundaries and raw
+history inspection. The history viewer loads on demand, labels its captured revision,
+uses signals for response rendering and cancels obsolete session requests. Settings
+help text now describes active stop processing. The existing GeofenceRule edit was
+preserved; simulator routes were not changed and M6 remains unimplemented.
+
+Checks actually executed:
+
+| Check | Result |
+| --- | --- |
+| Backend Release tests | 63 passed, including prior speeding/geofence checks, fixed-anchor drift, exact radius, 180-second boundary, stop/resume route boundaries, settings reevaluation, concurrent radius/sample updates, raw history, HTTP rejection and backend reset. |
+| Frontend ChromeHeadless tests | 16 passed, including separate route lines, one-point rendering, radius-update revisions, session reset, raw history rendering and request cancellation. |
+| Frontend production build | Passed; approximately 340 kB initial raw bundle. |
+| Real-time `scripts/Verify-M5.ps1`, isolated API port 5092 | Passed with real ten-second reporting: seven samples, two routes, preserved raw history. |
+| Actual SignalR global settings update | Both captured vehicle revisions delivered; route end equals stop-onset sample and next route starts at resumption sample. |
+| `git diff --check` | Passed. |
+
+README documents the fresh API + Frontend Rider launch and focused demonstration
+script. The temporary API was stopped after checks. Rider GUI interaction was not
+automated. State and history remain in memory, and cumulative snapshots grow with
+session length. No persistence or extra messaging infrastructure introduced.
+
+Next milestone: **M6**, only after review/request.
+
+### 20 October 2026 — M5 final review after component extraction
+
+Verified the separate VehicleSession class and the history viewer's external HTML
+and CSS against the complete M5 implementation. Fixed one settings-reevaluation
+edge case: a known resumption with only one point in its new route now retains
+Moving instead of reverting to Unknown. Initial single-point observations still
+remain Unknown. Added a regression test preserving the route ID and start time.
+
+Verification on the current source: 64 backend Release tests passed, 16 frontend
+ChromeHeadless tests passed, and the frontend production build passed (approximately
+340 kB initial bundle). Existing staged changes were preserved; no commit or staging
+operation performed. M5 remains complete. M6 was not started.

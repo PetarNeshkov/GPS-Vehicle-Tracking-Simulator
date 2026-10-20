@@ -1,3 +1,4 @@
+import { VehicleSnapshot } from './vehicle-snapshot';
 export interface VehicleSettings {
   readonly speedLimitKmh: number;
   readonly speedingDurationSeconds: number;
@@ -10,6 +11,7 @@ export interface GlobalSettings {
 }
 
 export interface GlobalSettingsEvent {
+  readonly vehicles?: readonly VehicleSnapshot[];
   readonly sessionId: string;
   readonly settings: GlobalSettings;
 }

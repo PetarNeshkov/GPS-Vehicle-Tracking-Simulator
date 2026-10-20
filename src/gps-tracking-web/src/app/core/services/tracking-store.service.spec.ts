@@ -30,6 +30,24 @@ describe('TrackingStore live synchronization', () => {
   });
   afterEach(() => { store.stop(); http.verify(); });
 
+  it('applies both movement snapshots from radius updates without overwriting newer vehicle revisions', () => {
+    store.start();
+    http.expectOne(TRACKING.vehiclesPath).flush({ sessionId: 'first', vehicles: [vehicle(1), { ...vehicle(1), id: 'vehicle-2' }] });
+    const stopped = { state: 'Stopped' as const, stopStartedAt: '2026-10-20T12:00:00Z', stopElapsedSeconds: 180 };
+    connection.globalUpdates$.next({ sessionId: 'first', settings: { stopRadiusMeters: 20, revision: 1 },
+      vehicles: [{ ...vehicle(2), movement: stopped, segments: [] }, { ...vehicle(2), id: 'vehicle-2', movement: stopped, segments: [] }] });
+    expect(store.vehicles().every(item => item.movement?.state === 'Stopped')).toBeTrue();
+    connection.updates$.next({ sessionId: 'first', vehicle: { ...vehicle(3), movement: { ...stopped, state: 'Moving' } } });
+    connection.globalUpdates$.next({ sessionId: 'first', settings: { stopRadiusMeters: 20, revision: 1 },
+      vehicles: [{ ...vehicle(2), movement: stopped }] });
+    expect(store.vehicles()[0].movement?.state).toBe('Moving');
+    connection.state$.next('reconnecting');
+    connection.state$.next('connected');
+    http.expectOne(TRACKING.vehiclesPath).flush({ ...envelope(0, 'second'), vehicles: [{ ...vehicle(0), segments: [], movement: { ...stopped, state: 'Unknown' } }] });
+    expect(store.vehicles()[0].segments).toEqual([]);
+    expect(store.vehicles()[0].movement?.state).toBe('Unknown');
+  });
+
   it('recovers geofence membership and alerts on reconnect and replaces definitions after restart', () => {
     const zone = { id: 'west', name: 'West', minLatitude: 1, maxLatitude: 2, minLongitude: 1, maxLongitude: 2 };
     const alert = { id: 'entry', vehicleId: 'vehicle-1', type: 'GeofenceEntered',

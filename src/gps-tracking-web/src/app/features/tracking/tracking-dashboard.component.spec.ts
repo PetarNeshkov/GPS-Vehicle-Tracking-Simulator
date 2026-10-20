@@ -1,3 +1,4 @@
+import { HistoryViewerComponent } from './history-viewer.component';
 import { CommonModule } from '@angular/common';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
@@ -12,7 +13,7 @@ import { TrackingConnectionStub } from '../../core/services/tracking-connection.
 describe('TrackingDashboardComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [CommonModule, SettingsEditorComponent],
+      imports: [CommonModule, SettingsEditorComponent, HistoryViewerComponent],
       declarations: [TrackingDashboardComponent],
       providers: [provideZoneChangeDetection(), provideHttpClient(), provideHttpClientTesting(),
         { provide: TrackingConnectionService, useClass: TrackingConnectionStub }]
@@ -77,6 +78,29 @@ describe('TrackingDashboardComponent', () => {
     expect(text).toContain('Entered West zone.');
     expect(text).toContain('Exited West zone.');
     expect(text).toContain('above 80 km/h for at least 30 seconds');
+    fixture.destroy();
+    http.verify();
+  }));
+
+  it('draws separate routes without joining them and leaves one-point routes as markers', fakeAsync(() => {
+    const fixture = TestBed.createComponent(TrackingDashboardComponent);
+    const http = TestBed.inject(HttpTestingController);
+    fixture.detectChanges();
+    tick(0);
+    const point = (longitude: number) => ({ latitude: 42.697, longitude, speedKmh: 0, heading: 0, timestamp: '2026-10-20T12:00:00Z' });
+    const segment = (id: string, longitudes: number[]) => ({ id, startedAt: '2026-10-20T12:00:00Z', endedAt: null, points: longitudes.map(point) });
+    http.expectOne(TRACKING.vehiclesPath).flush({ sessionId: 'session', vehicles: [{
+      id: 'vehicle-1', name: 'First', latestSample: point(23.330), lastReceivedAt: null, sampleCount: 5, revision: 5,
+      movement: { state: 'Stopped', stopStartedAt: '2026-10-20T12:00:00Z', stopElapsedSeconds: 180 },
+      segments: [segment('one', [23.312, 23.314]), segment('two', [23.320, 23.322]), segment('three', [23.330])]
+    }] });
+    fixture.detectChanges();
+    const lines = fixture.nativeElement.querySelectorAll('polyline.route-line');
+    expect(lines.length).toBe(2);
+    expect(lines[0].getAttribute('points').split(' ').length).toBe(2);
+    expect(lines[1].getAttribute('points').split(' ').length).toBe(2);
+    expect(fixture.nativeElement.textContent).toContain('Stopped');
+    expect(fixture.nativeElement.textContent).toContain('180 seconds of GPS coverage');
     fixture.destroy();
     http.verify();
   }));

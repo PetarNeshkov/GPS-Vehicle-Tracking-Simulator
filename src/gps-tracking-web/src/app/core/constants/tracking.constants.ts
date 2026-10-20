@@ -1,4 +1,5 @@
 export const TRACKING = {
+  vehicleHistoryPath: (id: string) => `/api/vehicles/${encodeURIComponent(id)}/history`,
   vehiclesPath: '/api/vehicles',
   settingsPath: '/api/settings',
   vehicleSettingsPath: (id: string) => `/api/vehicles/${encodeURIComponent(id)}/settings`,

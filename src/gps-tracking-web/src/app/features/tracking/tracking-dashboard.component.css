@@ -121,3 +121,11 @@ dd {
   fill: #28552e;
   font-size: 13px;
 }
+
+.geofence-note {
+  padding-inline: 1.25rem;
+}
+
+.alert-history {
+  padding-top: 1.5rem;
+}

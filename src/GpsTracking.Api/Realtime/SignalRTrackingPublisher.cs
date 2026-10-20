@@ -22,7 +22,7 @@ public sealed class SignalRTrackingPublisher(
         try
         {
             await hub.Clients.All.SendAsync(TrackingHubContract.GlobalSettingsUpdated,
-                new GlobalSettingsEvent(session.Id, snapshot.ToResponse()), timeout.Token);
+                snapshot.ToEvent(session.Id), timeout.Token);
         }
         catch (Exception exception)
         {
