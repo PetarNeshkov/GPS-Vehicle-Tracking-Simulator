@@ -126,6 +126,19 @@ dd {
   padding-inline: 1.25rem;
 }
 
-.alert-history {
-  padding-top: 1.5rem;
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 21rem;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.tracking-content {
+  min-width: 0;
+}
+
+@media (max-width: 1099px) {
+  .dashboard-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
