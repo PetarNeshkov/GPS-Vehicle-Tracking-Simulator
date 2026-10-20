@@ -6,11 +6,12 @@
   }
   @if (history(); as data) {
     <p>Snapshot at vehicle revision {{ data.revision }}. Refresh to include newer observations.</p>
-    <div class="history-table-container">
+    <p>{{ total() }} observations · Newest first</p>
+    <div #historyTable class="history-table-container" tabindex="0" role="region" aria-label="Raw GPS observations">
       <table>
         <thead><tr><th>GPS time</th><th>Latitude</th><th>Longitude</th><th>km/h</th></tr></thead>
         <tbody>
-          @for (sample of data.samples; track sample.timestamp) {
+          @for (sample of visibleSamples(); track sample.timestamp) {
             <tr><td>{{ sample.timestamp | date:'medium' }}</td><td>{{ sample.latitude | number:'1.5-5' }}</td>
               <td>{{ sample.longitude | number:'1.5-5' }}</td><td>{{ sample.speedKmh }}</td></tr>
           }
@@ -20,5 +21,10 @@
         <p>No observations yet.</p>
       }
     </div>
+    <nav class="history-pagination" aria-label="GPS history pages">
+      <button type="button" (click)="goToPage(page() - 1)" [disabled]="page() === 0">Previous</button>
+      <span role="status">Page {{ page() + 1 }} of {{ pageCount() }}</span>
+      <button type="button" (click)="goToPage(page() + 1)" [disabled]="page() + 1 >= pageCount()">Next</button>
+    </nav>
   }
 </details>
