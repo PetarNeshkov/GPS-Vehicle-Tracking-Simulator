@@ -52,7 +52,7 @@ svg {
 
 .vehicle-grid {
   display: grid;
-  align-items: start;
+  align-items: stretch;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
   margin-top: 1rem;
@@ -136,6 +136,23 @@ dd {
 
 .tracking-content {
   min-width: 0;
+}
+
+.tracking-sidebar {
+  min-width: 0;
+  align-self: stretch;
+}
+
+.global-settings-panel {
+  padding: 1rem;
+  background: #fff;
+  border: 1px solid #d5e0e1;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+}
+
+.global-settings-panel app-settings-editor {
+  margin-top: 0;
 }
 
 @media (max-width: 1099px) {

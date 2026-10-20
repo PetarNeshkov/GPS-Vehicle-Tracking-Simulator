@@ -111,7 +111,11 @@
       }
     </section>
 
-    <app-settings-editor [global]="store.globalSettings()" [sessionId]="store.currentSession()" />
   </div>
-  <app-alert-history [alerts]="store.alerts()" [vehicles]="store.vehicles()" [sessionId]="store.currentSession()" />
+  <aside class="tracking-sidebar" aria-label="Global settings and alert history">
+    <section class="global-settings-panel" aria-label="Global settings">
+      <app-settings-editor [global]="store.globalSettings()" [sessionId]="store.currentSession()" />
+    </section>
+    <app-alert-history [alerts]="store.alerts()" [vehicles]="store.vehicles()" [sessionId]="store.currentSession()" />
+  </aside>
 </div>
