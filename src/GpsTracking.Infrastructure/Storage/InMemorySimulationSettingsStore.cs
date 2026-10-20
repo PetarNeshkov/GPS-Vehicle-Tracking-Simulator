@@ -6,7 +6,7 @@ namespace GpsTracking.Infrastructure.Storage;
 public sealed class InMemorySimulationSettingsStore(IReadOnlyDictionary<string, SimulationSettings> seeds)
     : ISimulationSettingsStore
 {
-    private readonly object gate = new();
+    private readonly Lock gate = new();
     private readonly Dictionary<string, SimulationSettings> settings = new(seeds, StringComparer.Ordinal);
 
     public SimulationSettings? Get(string vehicleId)

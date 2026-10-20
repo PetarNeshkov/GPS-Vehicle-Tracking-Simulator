@@ -1,7 +1,6 @@
 using GpsTracking.Application.Abstractions;
 using GpsTracking.Application.Tracking;
 using GpsTracking.Domain.Models;
-using GpsTracking.Domain.Rules;
 
 namespace GpsTracking.Infrastructure.Storage;
 
@@ -10,7 +9,7 @@ public sealed class InMemoryTrackingStore : ITrackingStore
     // One gate keeps global radius changes atomic with both vehicles and reads.
     private readonly Dictionary<string, VehicleSession> sessions;
     private readonly IReadOnlyList<GeofenceDefinition> geofences;
-    private readonly object gate = new();
+    private readonly Lock gate = new();
     private GlobalSettingsSnapshot globalSettings;
 
     public InMemoryTrackingStore(IEnumerable<VehicleDefinition> vehicles, GlobalSettings? settings = null,
@@ -68,7 +67,10 @@ public sealed class InMemoryTrackingStore : ITrackingStore
 
     public IReadOnlyList<VehicleSnapshot> GetSnapshots()
     {
-        lock (gate) return sessions.Values.Select(Snapshot).ToArray();
+        lock (gate)
+        {
+            return sessions.Values.Select(Snapshot).ToArray();
+        }
     }
 
     public TrackingState GetState()
