@@ -1,4 +1,45 @@
 .history-table-container {
   max-height: 240px;
   overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid #d5e0e1;
+  border-radius: .5rem;
 }
+
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: .85rem;
+}
+
+th, td {
+  padding: .5rem;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid #d5e0e1;
+}
+
+th {
+  position: sticky;
+  top: 0;
+  background: #edf3f3;
+}
+
+.history-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  margin-top: .75rem;
+}
+
+button {
+  padding: .5rem .75rem;
+  cursor: pointer;
+}
+
+button:disabled { cursor: default; }
+
+summary { cursor: pointer; }
