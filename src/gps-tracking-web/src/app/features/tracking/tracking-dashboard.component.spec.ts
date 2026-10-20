@@ -1,3 +1,4 @@
+import { AlertHistoryComponent } from './alert-history.component';
 import { HistoryViewerComponent } from './history-viewer.component';
 import { CommonModule } from '@angular/common';
 import { provideHttpClient } from '@angular/common/http';
@@ -13,7 +14,7 @@ import { TrackingConnectionStub } from '../../core/services/tracking-connection.
 describe('TrackingDashboardComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [CommonModule, SettingsEditorComponent, HistoryViewerComponent],
+      imports: [CommonModule, SettingsEditorComponent, HistoryViewerComponent, AlertHistoryComponent],
       declarations: [TrackingDashboardComponent],
       providers: [provideZoneChangeDetection(), provideHttpClient(), provideHttpClientTesting(),
         { provide: TrackingConnectionService, useClass: TrackingConnectionStub }]

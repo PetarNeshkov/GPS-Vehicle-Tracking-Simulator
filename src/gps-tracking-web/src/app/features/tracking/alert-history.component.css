@@ -1,0 +1,100 @@
+:host {
+  display: block;
+  min-width: 0;
+  position: sticky;
+  top: 1rem;
+}
+
+.alert-panel {
+  display: flex;
+  flex-direction: column;
+  height: min(42rem, calc(100dvh - 2rem));
+  background: #fff;
+  border: 1px solid #d5e0e1;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.alert-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  padding: 1.25rem;
+  border-bottom: 1px solid #d5e0e1;
+}
+
+h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.alert-heading p {
+  width: 100%;
+  margin: 0;
+  color: #486064;
+  font-size: .85rem;
+}
+
+.alert-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding: 0 1.25rem;
+}
+
+.alert-card {
+  padding: 1rem 0;
+  border-bottom: 1px solid #d5e0e1;
+  overflow-wrap: anywhere;
+}
+
+.alert-card:last-child {
+  border-bottom: 0;
+}
+
+.alert-card p {
+  margin: .5rem 0 0;
+}
+
+.alert-time, .empty {
+  color: #486064;
+}
+
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  padding: 1rem;
+  border-top: 1px solid #d5e0e1;
+  font-size: .85rem;
+}
+
+button {
+  padding: .45rem .65rem;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+:focus-visible {
+  outline: 2px solid #0b7285;
+  outline-offset: -2px;
+}
+
+@media (max-width: 1099px) {
+  :host {
+    position: static;
+  }
+
+  .alert-panel {
+    height: min(32rem, 70dvh);
+  }
+}

@@ -1,0 +1,39 @@
+<aside class="alert-panel" aria-label="Tracking alerts">
+  <header class="alert-heading">
+    <h2>Alert history</h2>
+    <span>{{ alerts().length }} total</span>
+    <p>Newest first</p>
+  </header>
+
+  <div class="alert-list" tabindex="0" role="region" aria-label="Alert history entries" #alertList>
+    @if (alerts().length === 0) {
+      <p class="empty">No alerts in this session.</p>
+    }
+    @for (alert of visibleAlerts(); track alert.id) {
+      <article class="alert-card">
+        <strong>{{ alert.vehicleId }} — {{ alert.type }}</strong>
+        <p class="alert-time">{{ alert.occurredAt | date:'medium' }}</p>
+        @switch (alert.type) {
+          @case (geofence.alertTypes.speeding) {
+            <p>{{ alert.speedKmh | number:'1.0-1' }} km/h,
+              above {{ alert.speedLimitKmh | number:'1.0-1' }} km/h for at least {{ alert.speedingDurationSeconds }} seconds.</p>
+          }
+          @case (geofence.alertTypes.entered) {
+            <p>{{ geofence.messages.entered }} {{ alert.geofenceName }}.</p>
+          }
+          @case (geofence.alertTypes.exited) {
+            <p>{{ geofence.messages.exited }} {{ alert.geofenceName }}.</p>
+          }
+        }
+      </article>
+    }
+  </div>
+
+  <nav class="pagination" aria-label="Alert history pages">
+    <button type="button" [disabled]="currentPage() === 0"
+      (click)="previousPage(); alertList.scrollTop = 0">Previous</button>
+    <span role="status">Page {{ currentPage() + 1 }} of {{ pageCount() }}</span>
+    <button type="button" [disabled]="currentPage() + 1 >= pageCount()"
+      (click)="nextPage(); alertList.scrollTop = 0">Next</button>
+  </nav>
+</aside>

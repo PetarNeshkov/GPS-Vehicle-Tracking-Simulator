@@ -619,3 +619,20 @@ Verification on the current source: 64 backend Release tests passed, 16 frontend
 ChromeHeadless tests passed, and the frontend production build passed (approximately
 340 kB initial bundle). Existing staged changes were preserved; no commit or staging
 operation performed. M5 remains complete. M6 was not started.
+
+### 20 October 2026 — Alert history sidebar
+
+At the user's request, extracted alert presentation into a standalone component
+with separate HTML/CSS. Desktop layout uses a sticky right-hand sidebar with a
+bounded scroll area and persistent heading/count/navigation. Below 1100 pixels it
+stacks below the dashboard, retaining a height limit. Pagination renders at most
+20 alerts at a time; all session alerts remain accessible, newest first. New
+backend sessions reset paging and shorter histories clamp the selected page.
+
+This is client-side pagination: existing backend retention and cumulative transport
+remain unchanged. It bounds page height and rendered entries, not session memory
+or network payload size. No broader M6 scenario work was implemented.
+
+Verification: all 18 frontend ChromeHeadless tests and the production build passed.
+New tests cover bounded rendering/scrolling, navigation, live totals, short histories
+and session resets. Dashboard tests continue to cover all existing alert types.
