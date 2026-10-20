@@ -1,0 +1,15 @@
+.telemetry-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .25rem .75rem;
+  padding: .65rem .75rem;
+  border-radius: 6px;
+  background: #edf5f2;
+  color: #28552e;
+  font-size: .85rem;
+}
+
+.telemetry-status.stale {
+  background: #fff0d9;
+  color: #704512;
+}

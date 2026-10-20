@@ -22,7 +22,7 @@ public static class ServiceCollectionExtensions
         {
             var options = provider.GetRequiredService<IOptions<SimulatorOptions>>().Value;
             client.BaseAddress = new Uri(options.BackendBaseUrl.TrimEnd('/') + '/');
-            client.Timeout = TimeSpan.FromSeconds(5);
+            client.Timeout = TimeSpan.FromSeconds(SimulatorConstants.DeliveryTimeoutSeconds);
         });
         services.AddHostedService<SimulationWorker>();
 

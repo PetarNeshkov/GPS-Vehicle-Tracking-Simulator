@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, Input, OnChanges, OnDestroy, SimpleChanges } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, Input, OnChanges, OnDestroy, SimpleChanges } from '@angular/core';
 import { AbstractControl, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors } from '@angular/forms';
-import { Subscription } from 'rxjs';
+import { Subscription, timer } from 'rxjs';
+import { FEEDBACK } from '../../core/constants/feedback.constants';
 import { SETTINGS } from '../../core/constants/settings.constants';
 import { GlobalSettings } from '../../core/models/tracking-settings';
 import { VehicleSnapshot } from '../../core/models/vehicle-snapshot';
@@ -31,7 +32,9 @@ export class SettingsEditorComponent implements OnChanges, OnDestroy {
   @Input() sessionId?: string;
 
   private readonly store = inject(TrackingStore);
+  private readonly changeDetector = inject(ChangeDetectorRef);
   private request?: Subscription;
+  private savedTimer?: Subscription;
 
   readonly constants = SETTINGS;
   readonly vehicleForm = new FormGroup({
@@ -51,6 +54,7 @@ export class SettingsEditorComponent implements OnChanges, OnDestroy {
     const sessionChanged = changes['sessionId'] !== undefined;
     if (sessionChanged) {
       this.request?.unsubscribe();
+      this.savedTimer?.unsubscribe();
       this.saving = false;
       this.error = null;
       this.saved = false;
@@ -88,6 +92,8 @@ export class SettingsEditorComponent implements OnChanges, OnDestroy {
         this.vehicleForm.reset(latest.settings ?? settings);
         this.saving = false;
         this.saved = true;
+        this.scheduleSavedDismissal();
+        this.changeDetector.markForCheck();
       },
       error: () => this.saveFailed()
     });
@@ -110,12 +116,15 @@ export class SettingsEditorComponent implements OnChanges, OnDestroy {
         this.globalForm.reset({ stopRadiusMeters: latest.stopRadiusMeters });
         this.saving = false;
         this.saved = true;
+        this.scheduleSavedDismissal();
+        this.changeDetector.markForCheck();
       },
       error: () => this.saveFailed()
     });
   }
 
   private beginSave(): void {
+    this.savedTimer?.unsubscribe();
     this.saving = true;
     this.error = null;
     this.saved = false;
@@ -124,9 +133,19 @@ export class SettingsEditorComponent implements OnChanges, OnDestroy {
   private saveFailed(): void {
     this.saving = false;
     this.error = SETTINGS.messages.saveFailed;
+    this.changeDetector.markForCheck();
+  }
+
+  private scheduleSavedDismissal(): void {
+    this.savedTimer?.unsubscribe();
+    this.savedTimer = timer(FEEDBACK.savedDurationMs).subscribe(() => {
+      this.saved = false;
+      this.changeDetector.markForCheck();
+    });
   }
 
   ngOnDestroy(): void {
     this.request?.unsubscribe();
+    this.savedTimer?.unsubscribe();
   }
 }

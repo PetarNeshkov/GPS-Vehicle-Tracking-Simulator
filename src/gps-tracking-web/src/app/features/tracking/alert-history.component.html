@@ -11,7 +11,7 @@
     }
     @for (alert of visibleAlerts(); track alert.id) {
       <article class="alert-card">
-        <strong>{{ alert.vehicleId }} — {{ alert.type }}</strong>
+        <strong>{{ vehicleName(alert.vehicleId) }} — {{ labels[alert.type] ?? alert.type }}</strong>
         <p class="alert-time">{{ alert.occurredAt | date:'medium' }}</p>
         @switch (alert.type) {
           @case (geofence.alertTypes.speeding) {

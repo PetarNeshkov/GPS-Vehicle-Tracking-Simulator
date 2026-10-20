@@ -3,6 +3,7 @@ import { Component, computed, input, OnChanges, signal, SimpleChanges } from '@a
 import { ALERTS } from '../../core/constants/alerts.constants';
 import { GEOFENCE } from '../../core/constants/geofence.constants';
 import { TrackingAlert } from '../../core/models/tracking-settings';
+import { VehicleSnapshot } from '../../core/models/vehicle-snapshot';
 
 @Component({
   selector: 'app-alert-history',
@@ -14,10 +15,12 @@ import { TrackingAlert } from '../../core/models/tracking-settings';
 export class AlertHistoryComponent implements OnChanges {
   readonly alerts = input<readonly TrackingAlert[]>([]);
   readonly sessionId = input<string>();
+  readonly vehicles = input<readonly VehicleSnapshot[]>([]);
 
   private readonly requestedPage = signal(0);
 
   protected readonly geofence = GEOFENCE;
+  protected readonly labels = ALERTS.labels;
   protected readonly pageCount = computed(() => Math.max(1, Math.ceil(this.alerts().length / ALERTS.pageSize)));
   protected readonly currentPage = computed(() => Math.min(this.requestedPage(), this.pageCount() - 1));
   protected readonly visibleAlerts = computed(() => {
@@ -38,5 +41,11 @@ export class AlertHistoryComponent implements OnChanges {
 
   protected nextPage(): void {
     this.requestedPage.set(Math.min(this.pageCount() - 1, this.currentPage() + 1));
+  }
+
+  protected vehicleName(id: string): string {
+    const vehicle = this.vehicles().find(item => item.id === id);
+
+    return vehicle?.name ?? id;
   }
 }

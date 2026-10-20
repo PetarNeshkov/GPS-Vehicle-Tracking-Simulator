@@ -4,6 +4,24 @@ import { TrackingAlert } from '../../core/models/tracking-settings';
 import { AlertHistoryComponent } from './alert-history.component';
 
 describe('AlertHistoryComponent', () => {
+  it('shows friendly vehicle and event names with fallbacks for unknown values', () => {
+    TestBed.configureTestingModule({ imports: [AlertHistoryComponent] });
+    const fixture = TestBed.createComponent(AlertHistoryComponent);
+    fixture.componentRef.setInput('vehicles', [{ id: 'vehicle-0', name: 'First vehicle' }]);
+    fixture.componentRef.setInput('alerts', [
+      { ...alerts[0], type: 'GeofenceEntered', geofenceName: 'West' },
+      { ...alerts[1], type: 'Future event' }
+    ]);
+    fixture.detectChanges();
+
+    const root: HTMLElement = fixture.nativeElement;
+    expect(root.textContent).toContain('First vehicle');
+    expect(root.textContent).toContain('Geofence entered');
+    expect(root.textContent).toContain('vehicle-1');
+    expect(root.textContent).toContain('Future event');
+    fixture.destroy();
+  });
+
   const alerts: TrackingAlert[] = Array.from({ length: 45 }, (_, index) => ({
     id: `alert-${index}`,
     vehicleId: `vehicle-${index}`,

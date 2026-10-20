@@ -1,3 +1,5 @@
+using GpsTracking.Simulator.Configuration;
+
 namespace GpsTracking.Simulator.Movement;
 
 public sealed class RouteProgressor
@@ -21,7 +23,7 @@ public sealed class RouteProgressor
             || !double.IsFinite(point.Latitude) || point.Latitude is < -90 or > 90
             || !double.IsFinite(point.Longitude) || point.Longitude is < -180 or > 180))
         {
-            throw new ArgumentException("A route needs at least two valid points.", nameof(points));
+            throw new ArgumentException(SimulatorConstants.InvalidRoute, nameof(points));
         }
 
         this.points = points.ToArray();
@@ -31,7 +33,7 @@ public sealed class RouteProgressor
 
         if (lengths.Any(length => length < 0.01))
         {
-            throw new ArgumentException("Adjacent route points must be distinct, including the closing edge.",
+            throw new ArgumentException(SimulatorConstants.DuplicateRoutePoints,
                 nameof(points));
         }
 
@@ -39,14 +41,22 @@ public sealed class RouteProgressor
     }
 
     public RoutePosition Advance(TimeSpan elapsed)
+        => Advance(elapsed, speedKmh);
+
+    public RoutePosition Advance(TimeSpan elapsed, double currentSpeedKmh)
     {
         if (elapsed < TimeSpan.Zero)
         {
             throw new ArgumentOutOfRangeException(nameof(elapsed));
         }
 
+        if (!double.IsFinite(currentSpeedKmh) || currentSpeedKmh < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(currentSpeedKmh));
+        }
+
         // Full laps leave the same position; keep long scheduling delays bounded.
-        var remaining = (speedKmh / 3.6 * elapsed.TotalSeconds) % totalLength;
+        var remaining = (currentSpeedKmh / 3.6 * elapsed.TotalSeconds) % totalLength;
         while (remaining >= lengths[segment] - segmentDistance)
         {
             remaining -= lengths[segment] - segmentDistance;
@@ -65,7 +75,7 @@ public sealed class RouteProgressor
         return new RoutePosition(
             from.Latitude + (to.Latitude - from.Latitude) * fraction,
             from.Longitude + (to.Longitude - from.Longitude) * fraction,
-            speedKmh, (heading + 360) % 360);
+            currentSpeedKmh, (heading + 360) % 360);
     }
 
     private static double Distance(RoutePoint from, RoutePoint to)

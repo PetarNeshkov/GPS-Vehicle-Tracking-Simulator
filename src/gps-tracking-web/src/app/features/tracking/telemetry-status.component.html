@@ -1,0 +1,8 @@
+<p class="telemetry-status" [class.stale]="stale()" aria-label="Telemetry freshness">
+  @if (ageSeconds() === null) {
+    <span>{{ labels.waiting }}</span>
+  } @else {
+    <strong>Telemetry: {{ stale() ? labels.stale : labels.live }}</strong>
+    <span>Last received {{ ageSeconds() }} seconds ago</span>
+  }
+</p>

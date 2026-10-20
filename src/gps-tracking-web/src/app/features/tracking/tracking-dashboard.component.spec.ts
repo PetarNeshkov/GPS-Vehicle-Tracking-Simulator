@@ -1,3 +1,5 @@
+import { TelemetryStatusComponent } from './telemetry-status.component';
+import { SimulationEditorComponent } from './simulation-editor.component';
 import { AlertHistoryComponent } from './alert-history.component';
 import { HistoryViewerComponent } from './history-viewer.component';
 import { CommonModule } from '@angular/common';
@@ -14,7 +16,8 @@ import { TrackingConnectionStub } from '../../core/services/tracking-connection.
 describe('TrackingDashboardComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [CommonModule, SettingsEditorComponent, HistoryViewerComponent, AlertHistoryComponent],
+      imports: [CommonModule, SettingsEditorComponent, HistoryViewerComponent, AlertHistoryComponent,
+        TelemetryStatusComponent, SimulationEditorComponent],
       declarations: [TrackingDashboardComponent],
       providers: [provideZoneChangeDetection(), provideHttpClient(), provideHttpClientTesting(),
         { provide: TrackingConnectionService, useClass: TrackingConnectionStub }]
@@ -37,7 +40,7 @@ describe('TrackingDashboardComponent', () => {
 
     const connection = TestBed.inject(TrackingConnectionService) as unknown as TrackingConnectionStub;
     connection.updates$.next({ sessionId: 'session', vehicle: {
-      ...waiting, sampleCount: 1, revision: 1,
+      ...waiting, sampleCount: 1, revision: 1, lastReceivedAt: new Date().toISOString(),
       latestSample: { latitude: 42.697, longitude: 23.318, speedKmh: 85.5, heading: 360,
         timestamp: '2026-10-18T09:00:00Z' }
     }});

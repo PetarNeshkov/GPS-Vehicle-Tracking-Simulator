@@ -189,7 +189,11 @@ Explicit clarification acceptance checks:
   - [x] CQRS history/segment APIs and expanded synchronization snapshots
   - [x] Separate route lines, movement status and raw history inspection
   - [x] Focused checks and real-time Rider demonstration script
-- [ ] M6 — Scenarios and UI completion
+- [x] M6 — Scenarios and UI completion
+  - [x] Independent repeatable driving, speeding, stopping and resumption phases
+  - [x] Phase validation and default-rule coverage checks
+  - [x] Telemetry freshness, readable alert headings and settings feedback
+  - [x] Scenario integration checks and Rider demonstration instructions
 - [ ] M7 — Integration and documentation
 - [ ] M8 — Clean-run verification and demo
 
@@ -636,3 +640,74 @@ or network payload size. No broader M6 scenario work was implemented.
 Verification: all 18 frontend ChromeHeadless tests and the production build passed.
 New tests cover bounded rendering/scrolling, navigation, live totals, short histories
 and session resets. Dashboard tests continue to cover all existing alert types.
+
+### 20 October 2026 — M6 completed; awaiting review
+
+Added simulator-owned scenario phases and progression over the existing geometry.
+Vehicle 1 repeats a 540-second schedule and Vehicle 2 a 720-second schedule; both
+include 60 seconds at 95 km/h and 210 seconds stationary. Their first stops are
+staggered. Position advances using each phase's speed, freezes during stops and
+continues across repeated cycles without teleporting. UTC sample timestamps and
+minimum ten-second real reporting remain unchanged; failed delivery has no replay.
+Phase definitions, route validity and sufficient default-rule coverage are validated
+at startup. Built-in durations support reporting intervals of 10–15 seconds.
+
+Added a separate telemetry freshness component with external HTML/CSS and constants.
+It shows waiting, Live or Stale (30 seconds since backend receipt), using a local
+browser timer without polling or changing reported movement. Local shared clocks
+are assumed. Alerts use vehicle names and readable types with fallbacks; bounded
+sidebar pagination is preserved. A new DOM regression check exposed settings save
+feedback remaining stale after asynchronous failure. Success/failure callbacks now
+mark their view for checking, preserving drafts and enabling retry.
+
+Confirmed requirements and documented assumptions remain distinct. No Domain rule,
+CQRS boundary, API contract, database or messaging infrastructure was changed.
+README now documents normal default-setting scenarios, approximate timings and
+freshness verification using Rider's existing GPS Tracking — All configuration.
+The optional isolated M5 script remains available for a shorter demonstration.
+
+Checks actually executed:
+
+| Check | Result |
+| --- | --- |
+| Backend Release tests | 74 passed, no build warnings. Includes 25 minutes of synthetic-time generated observations posted through the real API, repeated speeding episodes, both geofences, independent stops, exact route boundaries and retained raw history. |
+| Frontend ChromeHeadless tests | 21 passed, including freshness boundary/recovery/timer cleanup, friendly alert labels and failed-save feedback/draft retention. |
+| Frontend production build | Passed; 346.92 kB initial raw bundle. |
+| Actual simulator + isolated API on port 5093 | Both vehicles delivered six observations, moved independently at 42/66 km/h and had minimum observed intervals above 10 seconds. Temporary processes stopped afterwards. |
+| git diff --check | Passed. |
+
+Full scenario timing was verified using synthetic test timestamps, not a full
+wall-clock demonstration. Rider GUI interaction and a manual narrow-screen visual
+review were not automated. Existing responsive layout remains unchanged. Session
+history and cumulative snapshots remain unbounded for the short local assessment.
+Broader integration/reconnect/concurrency hardening remains M7; clean-checkout
+delivery remains M8. No commit or staging operation performed.
+
+Next milestone: **M7**, only after review/request.
+
+### 21 October 2026 — Runtime simulator adjustments requested after M6
+
+Added per-vehicle dashboard Simulator controls for cruising/speeding speeds and
+all five phase durations. GET/PUT simulation endpoints use separate Application
+query/command handlers and an in-memory Infrastructure store; controllers only map
+requests/results. Profiles are independent of alert settings. Validation rejects
+non-positive/non-finite speeds and non-positive durations; deliberately shorter
+phases are allowed even when they cannot trigger an alert. Shared contract defaults
+preserve the existing demonstration schedules.
+
+The simulator retrieves a profile before each reporting cycle. It advances elapsed
+movement with the old profile, applies changed values without teleporting or changing
+phase, and resets the current phase timer. Identical reads leave timers unchanged.
+Read failures retain the current scenario. Sampling remains at least ten seconds
+apart; there is no replay. Browser controls load on demand and keep failed-save drafts.
+Saved means accepted by the API, not acknowledged by a running simulator. Profiles
+reset on API restart; concurrent edits use last-write-wins. No extra server or broker.
+
+Verification: 79 backend Release tests passed, including profile validation,
+vehicle independence, position preservation, duration changes and no repeated timer
+reset. All 23 frontend ChromeHeadless tests and the production build passed
+(352.27 kB initial raw bundle). Actual API/simulator on isolated port 5093 applied a
+runtime change to Vehicle 1 at 110 km/h while Vehicle 2 stayed at 66 km/h; five recorded
+Vehicle 1 observations had a minimum interval above ten seconds. Temporary processes
+were stopped. Rider GUI was not automated. README and architecture notes updated.
+Existing user edits/staging preserved. M7 remains unimplemented.

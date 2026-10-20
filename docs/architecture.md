@@ -276,6 +276,37 @@ displays its captured revision, and cancels requests when the session changes.
 
 ## Communication and startup
 
+### M6 scenarios and presentation
+
+Simulator-only `ScenarioProgressor` advances an existing `RouteProgressor` through
+validated driving, speeding, stopped and resuming phases. Elapsed time is split at
+phase boundaries so position uses the speed active during each interval. Zero speed
+preserves position and heading; repeating phases retain route progress. Each vehicle
+owns its progressor and clock. `DemoScenarios` defines different schedules, including
+60 seconds at 95 km/h and 210 seconds stationary, so default rules can be demonstrated
+without changing thresholds. Startup rejects phases with invalid speeds/durations
+or insufficient coverage for the configured reporting interval. Reference defaults
+stay in the simulator; an integration test checks alignment with backend defaults
+without adding a Domain dependency to the simulator.
+
+The HTTP contract, supplied-speed authority and domain rules remain unchanged.
+No scenario controls, database or mediator are introduced. Failed deliveries are
+still skipped. Speed transitions are instantaneous, appropriate for this simple
+demonstration rather than a vehicle physics model.
+
+The frontend telemetry component uses backend receipt timestamps and a one-second
+browser timer, marking data stale at 30 seconds. This assumes the local browser and
+API share a clock. It does not alter movement state or connection status, issue
+polling requests, or advance GPS-based rules. Alert headings display vehicle names
+and readable event labels with ID/type fallbacks; existing bounded pagination stays
+intact. Settings callbacks explicitly mark their view for checking so asynchronous
+failures and success render even without another telemetry update.
+
+Scenario integration tests post 25 minutes of generated observations with synthetic
+test timestamps through the real HTTP API, covering repeated alerts, both zones,
+independent stops, route boundaries and preserved raw history. The running simulator
+always uses real time. Broader outage/concurrency integration remains M7.
+
 Each application starts independently. The API no longer launches, builds or
 references the frontend. The solution includes the frontend for IDE navigation,
 but its JavaScript project does not install or build npm dependencies during a
@@ -292,6 +323,29 @@ Simulator ingestion, snapshots, alerts and settings use HTTP;
 live publication uses SignalR. A broker, database, authentication, MediatR,
 generic repositories and separate read/write stores are unnecessary for this
 two-vehicle assessment. Business rules are ordinary C#.
+
+### Runtime simulation profiles
+
+Per-vehicle `GET`/`PUT /api/vehicles/{id}/simulation` controls the simulator separately
+from tracking thresholds. Thin controller actions map transport records to Application
+query/command handlers. An infrastructure store retains immutable profiles under a
+lock. Application validates finite positive speeds and positive durations, without
+requiring edited phases to trigger default alerts. Missing vehicles return 404 and
+invalid profiles return 400. API and simulator share initial profile definitions in
+Contracts; neither process depends on the other's implementation.
+
+Before each report the simulator reads the desired profile over the existing HTTP
+client. It advances elapsed movement under the old profile, then applies a changed
+profile without moving its position or changing phase. The current phase timer resets;
+identical profiles are a no-op. Failed reads retain the last working profile. Reporting
+still waits at least ten seconds after delivery, with no catch-up bursts. No new hub,
+broker, simulator web server or process control infrastructure is needed.
+
+The standalone editor loads on demand, validates inputs, preserves failed-save drafts
+and cancels requests on session changes/destruction. Saved means accepted by the API,
+not acknowledged by the simulator. Profiles reset on API restart and use last-write-wins;
+the editor does not synchronize other clients' edits live. Existing tracking snapshots,
+alert rules and SignalR synchronization are unaffected.
 
 ## Versions and reproducibility
 

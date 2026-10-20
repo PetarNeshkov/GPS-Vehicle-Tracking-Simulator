@@ -1,6 +1,7 @@
 # GPS Vehicle Tracking Simulator
 
-M4 adds geofence detection and visualization, alongside speeding alerts and live settings, to the simulator, API and Angular dashboard. Two vehicles independently
+M6 adds repeatable driving, speeding, stopping and resumption scenarios, telemetry
+freshness and clearer alerts to the simulator, API and Angular dashboard. Two vehicles independently
 follow deterministic routes, supplying speed and heading at intervals of at least
 10 seconds. Angular receives live vehicle snapshots and displays a simplified
 coordinate map. REST loads initial/reconnected state; regular polling is removed.
@@ -66,7 +67,8 @@ logs. The simulator sends an initial sample, then waits at least 10 seconds betw
 reports. Failed deliveries are logged and skipped; later samples continue normally.
 The dashboard retains its latest data during connection failures and recovers on
 reconnection and REST synchronization. Connection status does not indicate whether
-the simulator is running; stopping it leaves the latest positions visible.
+the simulator is running; stopping it leaves the latest positions visible. Each
+vehicle shows telemetry as stale after 30 seconds without a received sample.
 
 Verify the API directly and through the frontend proxy:
 
@@ -130,7 +132,7 @@ Debug process locks build output, stop it before rebuilding, or run tests with
 
 1. Start **GPS Tracking — All** and open the dashboard. Each vehicle card has
    independent speed/duration settings; the global stop radius appears once below.
-2. For Vehicle 1 (42 km/h), save a 40 km/h limit and 30-second speeding duration.
+2. During Vehicle 1's initial 120 seconds at 42 km/h, save a 40 km/h limit and 30-second speeding duration.
    Once retained qualifying observations cover 30 seconds, one alert appears.
    If enough history already exists, reevaluation can alert immediately on save.
 3. Continued speeding produces no duplicate alerts. Save a limit above 42 km/h to
@@ -171,7 +173,7 @@ Application separate reads from writes without MediatR or a separate database.
 
 ### Demonstrate M5 stops and separate routes
 
-The normal simulator routes keep moving. For a focused stop demonstration, start
+The normal simulator now includes stops (see M6 below). For a shorter, isolated stop demonstration, start
 the **GPS Tracking API** and **GPS Tracking Frontend** configurations separately in
 Rider with a fresh API session and leave the simulator stopped. Open
 `http://localhost:4200`, then run from the repository root:
@@ -198,14 +200,83 @@ completed driven route. A candidate stop keeps an open route until confirmation.
 `GET /api/vehicles/{id}/history` includes every accepted sample; `/segments` returns
 separate route point lists. Both responses include session ID and vehicle revision.
 Unknown vehicles return 404. Refresh/reconnect preserves routes; API restart clears
-the session. The map remains a simplified coordinate view. Full simulator scenarios
-and further UI refinement remain M6.
+the session. The map remains a simplified coordinate view.
+
+### Demonstrate M6 with default settings in Rider
+
+Start a fresh API session and select **GPS Tracking — All**. Open
+`http://localhost:4200`. Leave the default 80 km/h limit, 30-second speeding duration,
+180-second stop duration and global 10-metre radius unchanged. Both vehicles now
+repeat independent scenarios automatically; no script or settings edits are needed.
+
+| Phase, elapsed from simulator start | Vehicle 1 | Vehicle 2 |
+| --- | --- | --- |
+| Initial driving | 0–120 s at 42 km/h | 0–330 s at 66 km/h |
+| Speeding | 120–180 s at 95 km/h | 330–390 s at 95 km/h |
+| Normal driving | 180–210 s at 42 km/h | 390–420 s at 66 km/h |
+| Stationary reporting | 210–420 s | 420–630 s |
+| Resumed driving | 420–540 s at 42 km/h | 630–720 s at 66 km/h |
+| Repeat cycle | Every 540 s | Every 720 s |
+
+- Vehicle 1's first speeding alert appears around **2:30**; Vehicle 2's around
+  **6:00**. Continued speeding produces one alert per episode.
+- Vehicle 1 stops around **3:30**, becomes confirmed Stopped around **6:30**,
+  and starts a new route around **7:10**. Vehicle 2 continues moving during this stop.
+- Vehicle 2 stops around **7:00**, confirms around **10:00**, and starts its next
+  route around **10:40**. Completed routes end at stop onset, not confirmation.
+- Both routes cross both rectangles. Geofence alerts follow the observed
+  two-of-three majority, so membership can lag behind the marker.
+- Open Routes and Raw GPS history to see separate route boundaries and retained
+  stationary samples. The alert sidebar remains scrollable and paginated.
+- Stop only **GPS Tracking Simulator**: after 30 seconds telemetry becomes Stale,
+  while API connection and last reported movement remain separate. Restart the
+  simulator to recover Live on receipt. Restarting the simulator resets its route
+  scenario; restart the API too for a clean repeat demonstration without a jump.
+
+Timings are approximate: real HTTP delivery and ten-second reporting add sampling
+delay. A phase boundary changes the reported speed immediately; a resumed route
+starts only once a received position leaves the stop radius. Simulator logs name
+each phase. Production timestamps and reporting are never accelerated.
+
+Freshness uses backend receipt time and a browser timer, assuming the local browser
+and API share a clock. It neither polls HTTP nor infers a new movement state from
+missing data. Global radius remains separate from each vehicle's thresholds.
+
+### Adjust the simulator while running
+
+In either vehicle card, expand **Simulator controls**, click **Load simulator
+settings**, edit its speeds or phase durations, and click **Save simulator settings**.
+For example, set cruising speed to 110 km/h during initial driving. The next reporting
+cycle should show 110 for that vehicle while the other keeps its own profile.
+
+The simulator reads its profile before each report. A changed profile preserves its
+position and current phase, restarting that phase's timer with the new duration.
+Unchanged reads do not reset the timer. The new speed applies from that point onward;
+elapsed movement is never recalculated using the new speed. Saves do not emit extra
+GPS points or shorten the minimum ten-second interval. HTTP delays can delay application.
+The saved message confirms storage, not that an offline simulator has applied it.
+
+These controls change simulation behavior, independently of alert thresholds.
+Short stops or lower speeds may intentionally prevent an alert. Speeds must be finite
+and positive; durations must be positive whole seconds. The stationary phase always
+uses zero speed. Profiles apply separately to each vehicle and repeat each cycle.
+They remain in API memory across browser/simulator restarts; API restart restores
+defaults. Concurrent edits use last-write-wins. Failed profile reads keep the current
+scenario running. The browser loads settings on demand; only the simulator polls
+its profile. No simulator restart is required after saving.
 
 ## Configuration
 
-Demo routes and speeds are defined in
-`src/GpsTracking.Simulator/Movement/DemoRoutes.cs`. Each loop advances by actual
-elapsed time, carrying distance across vertices of its closed local path.
+Demo geometry is defined in `src/GpsTracking.Simulator/Movement/DemoRoutes.cs`;
+default profiles live in `src/GpsTracking.Contracts/Tracking/SimulationProfile.cs`,
+and `Movement/DemoScenarios.cs` maps them into phases. Each loop advances
+by actual elapsed time, carrying distance across vertices and phase boundaries.
+Stops freeze coordinates while continuing to send samples. Repeated cycles keep
+the current route position; speed changes are instantaneous rather than an
+acceleration model. Scenario values are independent of live backend settings.
+Startup validates phase definitions and enough reporting coverage for the default
+alert/stop durations. Built-in durations support intervals of 10–15 seconds;
+longer intervals require lengthening the phases. Intervals below 10 are rejected.
 
 | Location | Settings |
 | --- | --- |

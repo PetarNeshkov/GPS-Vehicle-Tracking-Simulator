@@ -1,3 +1,5 @@
+import { TelemetryStatusComponent } from './features/tracking/telemetry-status.component';
+import { SimulationEditorComponent } from './features/tracking/simulation-editor.component';
 import { AlertHistoryComponent } from './features/tracking/alert-history.component';
 import { HistoryViewerComponent } from './features/tracking/history-viewer.component';
 import { NgModule, provideZoneChangeDetection } from '@angular/core';
@@ -15,9 +17,11 @@ import { AppComponent } from './app.component';
   ],
   imports: [
     BrowserModule,
+    SimulationEditorComponent,
     SettingsEditorComponent,
     HistoryViewerComponent,
-    AlertHistoryComponent
+    AlertHistoryComponent,
+    TelemetryStatusComponent
   ],
   providers: [provideZoneChangeDetection({ eventCoalescing: true }), provideHttpClient()],
   bootstrap: [AppComponent]

@@ -2,6 +2,8 @@ using GpsTracking.Api.Configuration;
 using GpsTracking.Api.Constants;
 using GpsTracking.Api.Realtime;
 using GpsTracking.Application.Abstractions;
+using GpsTracking.Application.Simulation;
+using GpsTracking.Contracts.Tracking;
 using GpsTracking.Application.Tracking.Commands;
 using GpsTracking.Application.Tracking.Queries;
 using GpsTracking.Infrastructure.Storage;
@@ -20,6 +22,19 @@ public static class ServiceCollectionExtensions
         services.AddProblemDetails();
         services.AddSignalR();
         services.AddSingleton<TrackingSession>();
+        services.AddSingleton<ISimulationSettingsStore>(provider =>
+        {
+            var vehicles = provider.GetRequiredService<IOptions<TrackingOptions>>().Value.Vehicles;
+            var seeds = vehicles.Select((vehicle, index) => new
+            {
+                vehicle.Id,
+                Settings = SimulationProfile.DefaultFor(index).ToSettings()
+            }).ToDictionary(vehicle => vehicle.Id, vehicle => vehicle.Settings);
+
+            return new InMemorySimulationSettingsStore(seeds);
+        });
+        services.AddSingleton<GetSimulationSettingsHandler>();
+        services.AddSingleton<UpdateSimulationSettingsHandler>();
         services.AddSingleton<ITrackingPublisher, SignalRTrackingPublisher>();
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<ITrackingStore>(provider => new InMemoryTrackingStore(

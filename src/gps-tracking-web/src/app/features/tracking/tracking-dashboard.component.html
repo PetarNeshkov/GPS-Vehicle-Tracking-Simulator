@@ -52,6 +52,7 @@
       @for (vehicle of store.vehicles(); track vehicle.id; let index = $index) {
         <article class="vehicle-card" [style.border-top-color]="colors[index % colors.length]">
           <h2>{{ vehicle.name }}</h2>
+          <app-telemetry-status [lastReceivedAt]="vehicle.lastReceivedAt" />
           @if (vehicle.latestSample; as sample) {
             <p class="speed">{{ sample.speedKmh | number:'1.0-1' }} <span>km/h</span></p>
             <dl>
@@ -89,7 +90,7 @@
             }
           </dl>
           @if (vehicle.movement; as status) {
-            <p><strong>{{ movement.states[status.state] }}</strong></p>
+            <p>Last reported movement: <strong>{{ movement.states[status.state] }}</strong></p>
             @if (status.stopStartedAt) {
               <p>Stop onset: {{ status.stopStartedAt | date:'medium' }};
                 {{ status.stopElapsedSeconds | number:'1.0-0' }} seconds of GPS coverage.</p>
@@ -98,18 +99,19 @@
           <details>
             <summary>Routes ({{ vehicle.segments?.length ?? 0 }})</summary>
             @for (segment of vehicle.segments ?? []; track segment.id) {
-              <p>{{ segment.startedAt | date:'medium' }} ?
+              <p>{{ segment.startedAt | date:'medium' }} to
                 {{ segment.endedAt ? (segment.endedAt | date:'medium') : 'In progress' }}
                 ({{ segment.points.length }} points)</p>
             }
           </details>
           <app-history-viewer [vehicleId]="vehicle.id" [sessionId]="store.currentSession()" />
           <app-settings-editor [vehicle]="vehicle" [sessionId]="store.currentSession()" />
+          <app-simulation-editor [vehicleId]="vehicle.id" [sessionId]="store.currentSession()" />
         </article>
       }
     </section>
 
     <app-settings-editor [global]="store.globalSettings()" [sessionId]="store.currentSession()" />
   </div>
-  <app-alert-history [alerts]="store.alerts()" [sessionId]="store.currentSession()" />
+  <app-alert-history [alerts]="store.alerts()" [vehicles]="store.vehicles()" [sessionId]="store.currentSession()" />
 </div>

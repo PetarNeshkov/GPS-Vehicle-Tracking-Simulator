@@ -1,0 +1,33 @@
+<details>
+  <summary>Simulator controls</summary>
+  <p>Change this vehicle's behavior while running. Alert thresholds remain separate.</p>
+  <p>Changes preserve position and restart the current phase's timer. Shorter phases
+    may not trigger alerts. GPS reporting remains at least ten seconds apart.</p>
+  @if (!loaded()) {
+    <button type="button" (click)="load()" [disabled]="busy()">Load simulator settings</button>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="save()">
+      <fieldset [disabled]="busy()">
+        <legend>Simulation profile</legend>
+        @for (field of constants.fields; track field.key) {
+          <label>{{ field.label }}
+            <input type="number" [formControlName]="field.key" [step]="field.duration ? 1 : 'any'" required/>
+          </label>
+        }
+        @if (form.invalid && form.touched) {
+          <p class="error">{{ constants.messages.invalid }}</p>
+        }
+        <button type="submit" [disabled]="busy() || form.invalid">Save simulator settings</button>
+      </fieldset>
+    </form>
+  }
+  @if (busy()) {
+    <p role="status">Please wait…</p>
+  }
+  @if (error(); as message) {
+    <p class="error" role="alert">{{ message }}</p>
+  }
+  @if (saved()) {
+    <p class="save-confirmation" role="status">{{ constants.messages.saved }}</p>
+  }
+</details>
