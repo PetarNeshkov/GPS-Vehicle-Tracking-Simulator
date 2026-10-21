@@ -20,8 +20,37 @@ public static class ServiceCollectionExtensions
         services.AddControllers();
         services.AddOpenApi();
         services.AddProblemDetails();
+
+        AddTrackingRealtime(services);
+
+        services.AddSingleton(TimeProvider.System);
+
+        AddTrackingStorage(services);
+
+        AddTrackingHandlers(services);
+
+        AddTrackingOptions(services, configuration);
+
+        AddFrontendCors(services, configuration);
+
+        return services;
+    }
+
+    private static void AddTrackingRealtime(IServiceCollection services)
+    {
         services.AddSignalR();
         services.AddSingleton<TrackingSession>();
+        services.AddSingleton<ITrackingPublisher, SignalRTrackingPublisher>();
+    }
+
+    private static void AddTrackingStorage(IServiceCollection services)
+    {
+        services.AddSingleton<ITrackingStore>(provider =>
+        {
+            var options = provider.GetRequiredService<IOptions<TrackingOptions>>().Value;
+
+            return new InMemoryTrackingStore(options.Vehicles, options.GlobalSettings, options.Geofences);
+        });
         services.AddSingleton<ISimulationSettingsStore>(provider =>
         {
             var vehicles = provider.GetRequiredService<IOptions<TrackingOptions>>().Value.Vehicles;
@@ -33,42 +62,45 @@ public static class ServiceCollectionExtensions
 
             return new InMemorySimulationSettingsStore(seeds);
         });
-        services.AddSingleton<GetSimulationSettingsHandler>();
-        services.AddSingleton<UpdateSimulationSettingsHandler>();
-        services.AddSingleton<ITrackingPublisher, SignalRTrackingPublisher>();
-        services.AddSingleton(TimeProvider.System);
-        services.AddSingleton<ITrackingStore>(provider => new InMemoryTrackingStore(
-            provider.GetRequiredService<IOptions<TrackingOptions>>().Value.Vehicles,
-            provider.GetRequiredService<IOptions<TrackingOptions>>().Value.GlobalSettings,
-            provider.GetRequiredService<IOptions<TrackingOptions>>().Value.Geofences));
-        services.AddSingleton<SubmitSampleHandler>();
-        services.AddSingleton<GetSnapshotsHandler>();
-        services.AddSingleton<GetHistoryHandler>();
-        services.AddSingleton<GetSegmentsHandler>();
-        services.AddSingleton<GetTrackingStateHandler>();
-        services.AddSingleton<GetVehicleSettingsHandler>();
-        services.AddSingleton<GetAlertsHandler>();
-        services.AddSingleton<GetGeofencesHandler>();
-        services.AddSingleton<GetGlobalSettingsHandler>();
-        services.AddSingleton<UpdateVehicleSettingsHandler>();
-        services.AddSingleton<UpdateGlobalSettingsHandler>();
+    }
+
+    private static void AddTrackingHandlers(IServiceCollection services)
+    {
+        services.AddScoped<GetSimulationSettingsHandler>();
+        services.AddScoped<UpdateSimulationSettingsHandler>();
+        services.AddScoped<SubmitSampleHandler>();
+        services.AddScoped<GetSnapshotsHandler>();
+        services.AddScoped<GetHistoryHandler>();
+        services.AddScoped<GetSegmentsHandler>();
+        services.AddScoped<GetTrackingStateHandler>();
+        services.AddScoped<GetVehicleSettingsHandler>();
+        services.AddScoped<GetAlertsHandler>();
+        services.AddScoped<GetGeofencesHandler>();
+        services.AddScoped<GetGlobalSettingsHandler>();
+        services.AddScoped<UpdateVehicleSettingsHandler>();
+        services.AddScoped<UpdateGlobalSettingsHandler>();
+    }
+
+    private static void AddTrackingOptions(IServiceCollection services, IConfiguration configuration)
+    {
         services.AddSingleton<IValidateOptions<TrackingOptions>, TrackingOptionsValidator>();
         services.AddOptions<TrackingOptions>()
             .Bind(configuration.GetRequiredSection(TrackingOptions.SectionName))
             .ValidateOnStart();
+    }
 
+    private static void AddFrontendCors(IServiceCollection services, IConfiguration configuration)
+    {
         var frontendOrigin = configuration[ApiConstants.FrontendOriginConfigurationKey];
         if (!Uri.TryCreate(frontendOrigin, UriKind.Absolute, out var origin)
             || (origin.Scheme != Uri.UriSchemeHttp && origin.Scheme != Uri.UriSchemeHttps)
             || origin.GetLeftPart(UriPartial.Authority) != frontendOrigin)
         {
             throw new InvalidOperationException(
-                $"{ApiConstants.FrontendOriginConfigurationKey} must be an HTTP(S) origin without a path or trailing slash.");
+                ApiConstants.InvalidFrontendOrigin);
         }
 
         services.AddCors(options => options.AddPolicy(ApiConstants.FrontendCorsPolicy, policy =>
             policy.WithOrigins(frontendOrigin).AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
-
-        return services;
     }
 }
