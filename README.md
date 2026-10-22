@@ -267,6 +267,30 @@ its profile. No simulator restart is required after saving.
 
 ## Configuration
 
+### Verify M7 integration and recovery in Rider
+
+From Rider's terminal at the repository root:
+
+```powershell
+dotnet test GPS-Vehicle-Tracking-Simulator.sln --configuration Release --no-restore
+npm --prefix src/gps-tracking-web test -- --watch=false --browsers=ChromeHeadless
+npm --prefix src/gps-tracking-web run build
+```
+
+Restore the solution and run `npm ci` first if dependencies are not installed.
+Backend tests cover concurrent requests, publication and simulator recovery;
+frontend component/store tests verify revision merging and presentation.
+For a visible walkthrough, start
+**GPS Tracking — All**, stop/restart the API and watch reconnection and session reset.
+Stopping only the simulator should show stale telemetry without inventing a stop.
+
+M7 keeps the existing in-memory implementation. Raw history and alert pagination
+limit rendered rows, not backend retention or snapshot payloads. Missing GPS samples
+are never replayed: rules evaluate retained timestamps/observations, so coverage can
+span a gap and does not prove uninterrupted physical movement during that gap.
+
+### Startup configuration
+
 Demo geometry is defined in `src/GpsTracking.Simulator/Movement/DemoRoutes.cs`;
 default profiles live in `src/GpsTracking.Contracts/Tracking/SimulationProfile.cs`,
 and `Movement/DemoScenarios.cs` maps them into phases. Each loop advances

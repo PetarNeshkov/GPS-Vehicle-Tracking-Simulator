@@ -194,7 +194,12 @@ Explicit clarification acceptance checks:
   - [x] Phase validation and default-rule coverage checks
   - [x] Telemetry freshness, readable alert headings and settings feedback
   - [x] Scenario integration checks and Rider demonstration instructions
-- [ ] M7 — Integration and documentation
+- [x] M7 — Integration and documentation
+  - [x] Concurrent samples/settings/read consistency and completed-route preservation
+  - [x] Full-state reconnect, duplicate/reordered events and backend session reset
+  - [x] Simulator HTTP failures, profile fallback, cancellation and no replay
+  - [x] Real SignalR/API restart and simulator outage checks (optional script subsequently removed)
+  - [x] Current architecture, lifetimes, limitations and Rider verification instructions
 - [ ] M8 — Clean-run verification and demo
 
 ## Handoff log
@@ -711,3 +716,74 @@ runtime change to Vehicle 1 at 110 km/h while Vehicle 2 stayed at 66 km/h; five 
 Vehicle 1 observations had a minimum interval above ten seconds. Temporary processes
 were stopped. Rider GUI was not automated. README and architecture notes updated.
 Existing user edits/staging preserved. M7 remains unimplemented.
+
+### 22 October 2026 — M7 completed; awaiting review
+
+Added focused integration/reliability coverage without changing production rules,
+service lifetimes or transport behavior. The existing implementation passed the
+new checks, so no production fix or additional infrastructure was required.
+
+- Concurrent two-vehicle ingestion, global radius edits, vehicle threshold edits
+  and reads use synchronized rounds. Assertions cover atomic revision relationships,
+  retained samples, single speeding alerts and unchanged completed routes.
+- Global SignalR publication captures both vehicles outside the storage gate;
+  returned captures remain stable after later changes. Existing transport-failure
+  isolation checks remain passing.
+- Frontend full-state recovery checks combine positions, settings, geofences,
+  movement and segments with duplicate/reordered captures. Equal global revisions
+  can carry newer vehicle snapshots; new sessions reject old buffered state.
+- Worker tests use a narrow test clock and controlled HTTP handler to cover 503s,
+  simulated timeout exceptions, malformed profiles, retention of the previous profile,
+  fresh recovery samples without replay, and cancellation during delays or active GETs.
+- Added `scripts/Verify-M7.cjs`: an isolated real API/SignalR/simulator smoke test
+  using installed dependencies, no new packages. README provides Rider terminal
+  commands and a visible restart walkthrough. Architecture notes explain current
+  scoped handlers, singleton stores, Lock usage, failure boundaries and limitations.
+
+Checks actually executed:
+
+| Check | Result |
+| --- | --- |
+| Backend Release tests | 85 passed; no build warnings. |
+| Frontend ChromeHeadless tests | 26 passed. |
+| Frontend production build | Passed; 365.08 kB initial raw bundle. |
+| Real smoke script on isolated port 5094 | Passed same-session REST recovery of history/routes/alerts/settings, global live captures, automatic SignalR reconnect after API restart, reset profiles/session and revision-1 live delivery. |
+| Actual simulator across API outage | Passed fresh post-restart timestamps, no replay and observed intervals at least ten seconds. |
+| git diff --check | Passed. |
+
+The script's initial rule setup uses synthetic GPS timestamps; its final outage
+stage uses the actual worker's real UTC timestamps and real reporting waits. The
+script stops only its own processes; no listener remained on port 5094 afterwards.
+It does not automate Angular's full UI or Rider's GUI. Unit/component tests and
+real transport checks provide complementary evidence, not exhaustive interleaving
+or production-scale load coverage. No commit/staging operation performed.
+
+Documented limitations remain unchanged: one local in-memory backend, unbounded
+retention/cumulative snapshots, no replay or exactly-once delivery, local shared
+clock assumption for freshness, and sample-based durations that can span missing
+observations without proving physical continuity. M8 remains unchecked.
+
+Next milestone: **M8**, only after review/request.
+
+### 22 October 2026 — M7 follow-up: HTTP concurrency and scope validation
+
+Reviewed the completed M7 checklist at the user's request. Extended concurrency
+coverage beyond direct store calls: a new API integration test releases two GPS
+submissions, global and per-vehicle settings updates, and a snapshot request together
+for twenty rounds. It verifies atomic revision/settings relationships across request
+scopes, retained unique samples and one speeding alert per vehicle. The existing
+lifetime test now explicitly enables scope validation and provider-build validation.
+
+Verification: all 86 backend Release tests passed without build warnings. No
+production behavior changed. The previously passed 26 frontend tests, production
+build and real transport/outage script were not repeated because this follow-up
+changed only backend tests and documentation. M7 remains complete; M8 is untouched.
+
+### 22 October 2026 — Optional M7 script removed
+
+Removed `scripts/Verify-M7.cjs` at the user's request and removed its current run
+instructions from README and architecture notes. The earlier M7 verification
+results above remain as historical evidence, not instructions for an available
+script. Automated backend/frontend tests and normal application startup are
+unchanged. Checked references and whitespace; no tests rerun for this script and
+documentation removal. Existing staging and unrelated edits were preserved.

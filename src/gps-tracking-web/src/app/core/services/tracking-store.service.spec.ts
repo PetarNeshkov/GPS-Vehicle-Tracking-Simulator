@@ -30,6 +30,57 @@ describe('TrackingStore live synchronization', () => {
   });
   afterEach(() => { store.stop(); http.verify(); });
 
+  it('restores full state and independently merges reordered global and vehicle captures during reconnect', () => {
+    const point = { timestamp: '2026-10-22T12:00:30Z', latitude: 42, longitude: 23, speedKmh: 95, heading: 90 };
+    const alert = { id: 'speeding-1', vehicleId: 'vehicle-1', type: 'Speeding', occurredAt: point.timestamp,
+      createdAt: point.timestamp, speedKmh: 95, speedLimitKmh: 80, speedingDurationSeconds: 30 };
+    const settings = { speedLimitKmh: 80, speedingDurationSeconds: 30, stopDurationSeconds: 180 };
+    const zone = { id: 'west', name: 'West', minLatitude: 41, maxLatitude: 43, minLongitude: 22, maxLongitude: 24 };
+    const fullVehicle = (id: string, revision: number): VehicleSnapshot => ({
+      ...vehicle(revision), id, latestSample: point, lastReceivedAt: point.timestamp, settings,
+      alerts: id === 'vehicle-1' ? [alert] : [],
+      geofenceMemberships: [{ geofenceId: 'west', state: 'Inside' }],
+      movement: { state: 'Stopped', stopStartedAt: point.timestamp, stopElapsedSeconds: 180 },
+      segments: [{ id: `${id}-route`, startedAt: point.timestamp, endedAt: point.timestamp, points: [point] }]
+    });
+
+    store.start();
+    http.expectOne(TRACKING.vehiclesPath).flush({ sessionId: 'first', vehicles: [vehicle(1), { ...vehicle(1), id: 'vehicle-2' }] });
+    connection.state$.next('reconnecting');
+    connection.state$.next('connected');
+    const pending = http.expectOne(TRACKING.vehiclesPath);
+    connection.globalUpdates$.next({ sessionId: 'first', settings: { stopRadiusMeters: 30, revision: 3 },
+      vehicles: [fullVehicle('vehicle-1', 6), fullVehicle('vehicle-2', 6)] });
+    // An identical settings save keeps the global revision but captures newer vehicle state.
+    connection.globalUpdates$.next({ sessionId: 'first', settings: { stopRadiusMeters: 30, revision: 3 },
+      vehicles: [fullVehicle('vehicle-1', 9), fullVehicle('vehicle-2', 9)] });
+    connection.globalUpdates$.next({ sessionId: 'first', settings: { stopRadiusMeters: 20, revision: 2 },
+      vehicles: [fullVehicle('vehicle-1', 5), fullVehicle('vehicle-2', 5)] });
+    const moving = { ...fullVehicle('vehicle-1', 10), movement: { state: 'Moving' as const, stopStartedAt: null, stopElapsedSeconds: 0 } };
+    connection.updates$.next({ sessionId: 'first', vehicle: moving });
+    pending.flush({ sessionId: 'first', globalSettings: { stopRadiusMeters: 10, revision: 1 },
+      geofences: [zone], vehicles: [fullVehicle('vehicle-1', 4), fullVehicle('vehicle-2', 4)] });
+
+    expect(store.vehicles()).toEqual([moving, fullVehicle('vehicle-2', 9)]);
+    expect(store.globalSettings()).toEqual({ stopRadiusMeters: 30, revision: 3 });
+    expect(store.geofences()).toEqual([zone]);
+    expect(store.alerts()).toEqual([alert]);
+    connection.updates$.next({ sessionId: 'first', vehicle: moving });
+    connection.updates$.next({ sessionId: 'first', vehicle: fullVehicle('vehicle-1', 5) });
+    expect(store.vehicles()[0]).toEqual(moving);
+    expect(store.alerts()).toEqual([alert]);
+
+    connection.state$.next('reconnecting');
+    connection.state$.next('connected');
+    connection.globalUpdates$.next({ sessionId: 'first', settings: { stopRadiusMeters: 50, revision: 99 }, vehicles: [moving] });
+    http.expectOne(TRACKING.vehiclesPath).flush({ sessionId: 'new', vehicles: [vehicle(0)],
+      geofences: [], globalSettings: { stopRadiusMeters: 10, revision: 0 } });
+    expect(store.vehicles()).toEqual([vehicle(0)]);
+    expect(store.alerts()).toEqual([]);
+    expect(store.geofences()).toEqual([]);
+    expect(store.globalSettings()?.stopRadiusMeters).toBe(10);
+  });
+
   it('applies both movement snapshots from radius updates without overwriting newer vehicle revisions', () => {
     store.start();
     http.expectOne(TRACKING.vehiclesPath).flush({ sessionId: 'first', vehicles: [vehicle(1), { ...vehicle(1), id: 'vehicle-2' }] });

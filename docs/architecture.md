@@ -290,7 +290,8 @@ stay in the simulator; an integration test checks alignment with backend default
 without adding a Domain dependency to the simulator.
 
 The HTTP contract, supplied-speed authority and domain rules remain unchanged.
-No scenario controls, database or mediator are introduced. Failed deliveries are
+Runtime profile controls were added after the initial M6 work (see below).
+No database or mediator is introduced. Failed deliveries are
 still skipped. Speed transitions are instantaneous, appropriate for this simple
 demonstration rather than a vehicle physics model.
 
@@ -305,7 +306,7 @@ failures and success render even without another telemetry update.
 Scenario integration tests post 25 minutes of generated observations with synthetic
 test timestamps through the real HTTP API, covering repeated alerts, both zones,
 independent stops, route boundaries and preserved raw history. The running simulator
-always uses real time. Broader outage/concurrency integration remains M7.
+always uses real time. M7 adds combined concurrency and outage/reconnect checks.
 
 Each application starts independently. The API no longer launches, builds or
 references the frontend. The solution includes the frontend for IDE navigation,
@@ -346,6 +347,54 @@ and cancels requests on session changes/destruction. Saved means accepted by the
 not acknowledged by the simulator. Profiles reset on API restart and use last-write-wins;
 the editor does not synchronize other clients' edits live. Existing tracking snapshots,
 alert rules and SignalR synchronization are unaffected.
+
+## M7 integration and service lifetimes
+
+API `AddServiceCollection` groups realtime, storage, handlers, options and CORS
+registration. Command/query handlers are scoped; the tracking store, simulation
+profile store, session ID, publisher and system clock are singletons. A lifetime
+test checks that handlers differ across scopes but share the same stores.
+Infrastructure uses dedicated `System.Threading.Lock` gates. Singleton lifetime
+does not itself provide synchronization. The tracking gate serializes samples,
+settings, revisions and snapshot capture; no HTTP or SignalR call holds it.
+
+Publication occurs after state is committed. A slow or failed publication does
+not undo acceptance, and publication order may differ from revision order. Global
+captures contain both vehicles; their revisions must be merged independently of
+the global revision, including repeated saves that keep the same global revision.
+REST plus cumulative snapshots recover missed accepted state. Alert IDs prevent
+duplicate presentation; there is no exactly-once transport or durable event queue.
+
+The simulator's two loops own their scenarios and share the typed HTTP client.
+Its fixed localhost target and five-second HTTP timeout suit this assessment;
+runtime base-address/DNS rotation is outside the local deployment scope. Profile
+read failures keep the previous scenario, submission failures discard that sample,
+and cancellation interrupts pending HTTP requests or reporting delays. Test-clock
+checks cover HTTP failures, simulated timeouts, malformed profiles, recovery and
+shutdown. Real-process outage verification performed during M7 is recorded in the
+handoff log; the optional verification script was subsequently removed.
+
+GPS rules use accepted observations and their timestamps. A gap does not advance
+state by itself, but the next accepted observation may supply enough elapsed time
+to confirm an episode. Physical behavior during missing samples is unknown. No
+maximum-gap/reset heuristic was added because it would change the agreed scope.
+
+`TrackingConcurrencyTests` synchronizes two sample writers, a global radius writer,
+a vehicle-settings writer and a reader in rounds. It checks retained samples,
+atomic revision relationships, single speeding episodes and frozen completed routes.
+`ConcurrentTrackingApiTests` also releases simultaneous HTTP submissions, settings
+updates and snapshot reads through the real ASP.NET Core pipeline, checking shared
+state across request scopes. Service lifetime tests enable both scope validation
+and validation on provider build to catch invalid dependency lifetime combinations.
+Frontend tests cover full-state reconnect with reordered/duplicate captures and a
+new session. The README documents a manual restart walkthrough; automated tests
+do not drive the full Angular UI or Rider GUI.
+
+Raw history displays 20 rows per page, newest first, with a bounded scroll region.
+Alert history is also paginated. Both still load cumulative data; backend retention
+and transport size remain unbounded for short local sessions. Save confirmations
+share a 15-second duration, and global settings sit above alerts in the sidebar.
+Clean-checkout setup and assessment rehearsal remain M8.
 
 ## Versions and reproducibility
 

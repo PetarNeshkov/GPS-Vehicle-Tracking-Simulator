@@ -12,6 +12,33 @@ namespace GpsTracking.Tests;
 public sealed class TrackingPublicationTests
 {
     [Fact]
+    public async Task GlobalPublicationCarriesBothCapturesAndRunsOutsideStorageLock()
+    {
+        var store = new InMemoryTrackingStore([
+            new VehicleDefinition { Id = "vehicle-1", Name = "First" },
+            new VehicleDefinition { Id = "vehicle-2", Name = "Second" }
+        ]);
+        var client = new RecordingClient();
+        var publisher = new SignalRTrackingPublisher(new TestHubContext(client), new TrackingSession(),
+            NullLogger<SignalRTrackingPublisher>.Instance);
+        client.BeforeSend = async () =>
+        {
+            var state = await Task.Run(store.GetState).WaitAsync(TimeSpan.FromSeconds(2));
+            Assert.Equal(20, state.GlobalSettings.Settings.StopRadiusMeters);
+            Assert.All(state.Vehicles, vehicle => Assert.Equal(1, vehicle.Revision));
+        };
+
+        await new UpdateGlobalSettingsHandler(store, publisher).HandleAsync(new GlobalSettings { StopRadiusMeters = 20 });
+        var captured = Assert.IsType<GlobalSettingsEvent>(client.Payload);
+        Assert.Equal(TrackingHubContract.GlobalSettingsUpdated, client.Method);
+        Assert.Equal(2, captured.Vehicles!.Count);
+
+        store.UpdateGlobalSettings(new GlobalSettings { StopRadiusMeters = 30 });
+        Assert.All(captured.Vehicles, vehicle => Assert.Equal(1, vehicle.Revision));
+        Assert.Equal(20, captured.Settings.StopRadiusMeters);
+    }
+
+    [Fact]
     public async Task PublicationRunsOutsideVehicleLockAndFailureDoesNotUndoAcceptance()
     {
         var store = new InMemoryTrackingStore([new VehicleDefinition { Id = "vehicle-1", Name = "First" }]);

@@ -2,6 +2,7 @@ using GpsTracking.Application.Abstractions;
 using GpsTracking.Application.Simulation;
 using GpsTracking.Application.Tracking.Commands;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GpsTracking.Tests;
@@ -11,7 +12,12 @@ public sealed class ServiceLifetimeTests
     [Fact]
     public void RequestsHaveSeparateHandlersButShareTheirInMemoryStores()
     {
-        using var factory = new WebApplicationFactory<Program>();
+        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+            builder.UseDefaultServiceProvider(options =>
+            {
+                options.ValidateScopes = true;
+                options.ValidateOnBuild = true;
+            }));
         using var firstRequest = factory.Services.CreateScope();
         using var secondRequest = factory.Services.CreateScope();
         var first = firstRequest.ServiceProvider;
