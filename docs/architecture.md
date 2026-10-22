@@ -394,7 +394,9 @@ Raw history displays 20 rows per page, newest first, with a bounded scroll regio
 Alert history is also paginated. Both still load cumulative data; backend retention
 and transport size remain unbounded for short local sessions. Save confirmations
 share a 15-second duration, and global settings sit above alerts in the sidebar.
-Clean-checkout setup and assessment rehearsal remain M8.
+The [assessment guide](demo.md) describes local startup, the default real-time
+demonstration and settings/recovery checks. The M8 progress log records clean-source
+verification separately from fresh-machine and manual Rider GUI verification.
 
 ## Versions and reproducibility
 
@@ -412,6 +414,15 @@ Clean-checkout setup and assessment rehearsal remain M8.
   package; the existing Karma/Jasmine test remains.
 - ASP.NET Core OpenAPI 10.0.13 resolves Microsoft.OpenApi 2.12.2, removing the
   earlier 2.0.0 restore warning without a redundant direct transitive reference.
+
+M8 restored dependencies into an isolated source copy on the existing Windows
+machine using these pinned versions. Existing machine-level package caches were
+allowed; no project build output, Angular cache or `node_modules` was copied.
+The Release solution build passed without warnings; all 86 backend and 26
+ChromeHeadless frontend tests passed, as did the Angular production build.
+On 22 October 2026, npm audit reported seven high-severity findings in the
+development/build/test dependency graph and zero with `--omit=dev`. M8 preserves
+the dependency baseline; it does not claim a clean full dependency audit.
 
 Sources: [Angular compatibility](https://angular.dev/reference/versions),
 [SDK selection](https://learn.microsoft.com/en-us/dotnet/core/tools/global-json),

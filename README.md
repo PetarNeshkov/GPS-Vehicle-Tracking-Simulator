@@ -1,11 +1,12 @@
 # GPS Vehicle Tracking Simulator
 
-M6 adds repeatable driving, speeding, stopping and resumption scenarios, telemetry
-freshness and clearer alerts to the simulator, API and Angular dashboard. Two vehicles independently
+An ASP.NET Core API, Angular dashboard and separate .NET GPS simulator demonstrate
+vehicle tracking, speeding alerts, geofencing and stop-based routes. Two vehicles independently
 follow deterministic routes, supplying speed and heading at intervals of at least
 10 seconds. Angular receives live vehicle snapshots and displays a simplified
 coordinate map. REST loads initial/reconnected state; regular polling is removed.
-Tracking state lives in the backend process.
+Tracking state lives in the backend process. Start with the setup below, then use
+the [assessment demonstration guide](docs/demo.md) for a complete walkthrough.
 
 ## Prerequisites
 
@@ -28,8 +29,8 @@ From the repository root:
 ```powershell
 dotnet --version
 dotnet restore GPS-Vehicle-Tracking-Simulator.sln --locked-mode
-dotnet build GPS-Vehicle-Tracking-Simulator.sln --no-restore
-dotnet test GPS-Vehicle-Tracking-Simulator.sln --no-restore
+dotnet build GPS-Vehicle-Tracking-Simulator.sln --configuration Release --no-restore
+dotnet test GPS-Vehicle-Tracking-Simulator.sln --configuration Release --no-build --no-restore
 cd src/gps-tracking-web
 npm ci
 npm run build
@@ -79,8 +80,9 @@ Invoke-RestMethod http://localhost:4200/api/health
 
 Both return `status: healthy`. The development OpenAPI document is available at
 `http://localhost:5078/openapi/v1.json`. `/hubs/tracking` carries live updates through
-the frontend proxy. `GET /api/vehicles` now returns `{ sessionId, vehicles }` rather
-than a bare array; both REST snapshots and events identify the backend session.
+the frontend proxy. `GET /api/vehicles` returns
+`{ sessionId, vehicles, globalSettings, geofences }`; both REST snapshots and events
+identify the backend session.
 
 ## Rider
 
@@ -123,15 +125,14 @@ Avoid starting a second copy while ports 5078 or 4200 are already in use.
    after reconnection, and no periodic two-second snapshot requests. Failed REST
    synchronization retries after two seconds until successful.
 
-Run `npm ci` after pulling M3 to install Angular Forms alongside the SignalR client. Restart the API
-and frontend together because the snapshot response shape changed. If a running
-Debug process locks build output, stop it before rebuilding, or run tests with
-`--configuration Release`.
+Run `npm ci` after dependency lockfile changes. If a running Debug process locks
+build output, stop it before rebuilding, or run tests with `--configuration Release`.
 
 ### Demonstrate M3 speeding and settings
 
 1. Start **GPS Tracking — All** and open the dashboard. Each vehicle card has
-   independent speed/duration settings; the global stop radius appears once below.
+   independent speed/duration settings; the global stop radius appears in the sidebar
+   above alert history (below the vehicle cards on narrow screens).
 2. During Vehicle 1's initial 120 seconds at 42 km/h, save a 40 km/h limit and 30-second speeding duration.
    Once retained qualifying observations cover 30 seconds, one alert appears.
    If enough history already exists, reevaluation can alert immediately on save.
@@ -265,9 +266,7 @@ defaults. Concurrent edits use last-write-wins. Failed profile reads keep the cu
 scenario running. The browser loads settings on demand; only the simulator polls
 its profile. No simulator restart is required after saving.
 
-## Configuration
-
-### Verify M7 integration and recovery in Rider
+## Integration and recovery checks
 
 From Rider's terminal at the repository root:
 
@@ -289,7 +288,7 @@ limit rendered rows, not backend retention or snapshot payloads. Missing GPS sam
 are never replayed: rules evaluate retained timestamps/observations, so coverage can
 span a gap and does not prove uninterrupted physical movement during that gap.
 
-### Startup configuration
+## Startup configuration
 
 Demo geometry is defined in `src/GpsTracking.Simulator/Movement/DemoRoutes.cs`;
 default profiles live in `src/GpsTracking.Contracts/Tracking/SimulationProfile.cs`,
@@ -343,6 +342,7 @@ The startup configuration supplies defaults again after backend restart.
 ## Architecture, status and limitations
 
 - [Project boundaries and decisions](docs/architecture.md)
+- [Assessment demonstration and delivery checks](docs/demo.md)
 - [Requirements, assumptions, milestones and actual verification log](GPS_TRACKING_IMPLEMENTATION_PLAN.md)
 
 The evaluator confirmed the global stop radius, routes ending at the start of a
@@ -359,3 +359,8 @@ persistence, broker, authentication, hosted deployment or map provider is includ
 stack and notices for optional native dependency scripts. The selected Windows
 setup passed installation, production build, headless tests and dev-server startup
 without enabling additional install scripts. These notices are not suppressed.
+
+On 22 October 2026, `npm audit` reported seven high-severity findings in the
+development/build/test dependency graph; `npm audit --omit=dev` reported zero
+findings. Dependency upgrades are outside M8 and no
+automatic `npm audit fix --force` was applied. This delivery is for local use.

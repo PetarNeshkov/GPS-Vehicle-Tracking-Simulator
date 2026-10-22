@@ -200,7 +200,11 @@ Explicit clarification acceptance checks:
   - [x] Simulator HTTP failures, profile fallback, cancellation and no replay
   - [x] Real SignalR/API restart and simulator outage checks (optional script subsequently removed)
   - [x] Current architecture, lifetimes, limitations and Rider verification instructions
-- [ ] M8 — Clean-run verification and demo
+- [x] M8 — Clean-run verification and demo
+  - [x] Isolated clean-source restore, Release build and backend/frontend checks
+  - [x] Documented three-process startup and shared Rider configuration inspection
+  - [x] Default real-time scenarios and browser settings/history/recovery rehearsal
+  - [x] Assessment demo guide and current startup/limitation documentation
 
 ## Handoff log
 
@@ -787,3 +791,59 @@ results above remain as historical evidence, not instructions for an available
 script. Automated backend/frontend tests and normal application startup are
 unchanged. Checked references and whitespace; no tests rerun for this script and
 documentation removal. Existing staging and unrelated edits were preserved.
+
+### 22 October 2026 — M8 completed: local delivery and demonstration
+
+Prepared an isolated copy of tracked working-tree source at baseline commit
+`298888fda701c80b094554a7d7300744051a080a`, excluding absent files and all existing
+build output, node_modules and Angular caches. This preserved the requested removal
+of Verify-M7.cjs even though its earlier addition remained staged. No staging or
+commit operations were performed. Verification used the existing Windows machine
+and its package caches, not a fresh OS installation or a different platform.
+
+Verified with .NET SDK 10.0.402, Node 24.19.0, npm 11.17.0 and Chrome 155:
+
+- Locked NuGet restore and npm ci succeeded in the isolated source copy.
+- Release solution build: zero warnings/errors. Backend tests: 86 passed.
+- Angular production build: passed, initial bundle 365.08 kB. ChromeHeadless tests:
+  26 passed. Installation retained upstream deprecation/optional-script notices.
+- npm audit: seven high-severity findings in development/build/test dependencies;
+  npm audit --omit=dev: zero findings. No dependency changes or force fixes applied.
+- API and simulator started using their documented launch profiles; Angular started
+  with npm start. Direct and frontend-proxied health endpoints returned healthy.
+- Real Chrome browser rehearsal with unchanged default scenario durations observed
+  both vehicles speeding, entering/exiting geofences, confirming their 180-second
+  stops and resuming into second routes. At the captured checkpoint each had 65
+  samples, two routes and one speeding alert; combined alert count was 18.
+- Completed route ends matched stop-onset samples. Resumed route points were outside
+  the global 10-metre radius. Raw history retained stationary observations. History
+  displayed 20 rows, changed page correctly and stayed within a 240-pixel scroll area.
+- Vehicle/global/simulator save confirmations were present at 14 seconds and absent
+  after 16 seconds. Browser edits changed Vehicle 1's threshold and simulation speeds
+  while Vehicle 2 retained its settings; global radius changed for the shared session.
+  The simulator reported the new 110 km/h speed; page reload retained saved settings.
+- Stopping the simulator made both telemetry indicators stale while the API stayed
+  connected. A real API restart caused browser reconnection into a new empty session
+  with default settings. No application code changes were required.
+- Reviewed desktop and 390-pixel-wide screenshots; the latter had no horizontal
+  overflow. No page errors occurred during the default scenario rehearsal. The alert
+  panel remained bounded/scrollable; multi-page alert behavior remains covered by
+  the existing automated component tests (the default capture had fewer than 20 alerts).
+- Shared Rider compound references and project launch profiles resolve. Actual
+  terminal startup passed; clicking Run in Rider remains a manual IDE smoke check,
+  not an automated result. Local Markdown links and Git whitespace checks passed.
+
+Temporary browser probes were outside the repository and introduced no package or
+verification-script dependency. Two exploratory assertions were corrected to respect
+scenario semantics: cruising speed is not applied during a speeding phase, and
+positive reported speed alone does not establish spatial resumption. The final
+checks used both driving speeds and actual route coordinates; production code stayed
+unchanged. Test helpers and screenshots are not required to run the delivered app.
+
+Updated README with the current application overview, Release verification commands,
+complete snapshot shape, settings location and dependency audit outcome. Added
+`docs/demo.md` with an approximately eleven-minute default walkthrough, settings and
+recovery exercises, Rider startup and design talking points. Architecture notes now
+record clean-source verification and link the demonstration guide. Historical M0-M7
+entries remain unchanged. Existing in-memory, sample-gap and local-only limitations
+still apply. All planned milestones are complete; no further feature work is included.
