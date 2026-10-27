@@ -39,17 +39,6 @@ h2 {
   color: #486064;
 }
 
-svg {
-  display: block;
-  width: 100%;
-  background: #f1f6f5;
-}
-
-.marker-label {
-  fill: #18353b;
-  font: 16px sans-serif;
-}
-
 .vehicle-grid {
   display: grid;
   align-items: stretch;
@@ -108,19 +97,6 @@ dd {
     align-items: flex-start;
     flex-direction: column;
   }
-}
-
-.geofence-region {
-  fill: #62a86b;
-  fill-opacity: 0.12;
-  stroke: #42794a;
-  stroke-width: 2;
-  stroke-dasharray: 6 4;
-}
-
-.geofence-label {
-  fill: #28552e;
-  font-size: 13px;
 }
 
 .geofence-note {

@@ -8,43 +8,8 @@
 <div class="dashboard-layout">
   <div class="tracking-content">
     <section class="map-panel" aria-label="Vehicle positions">
-      <div class="map-heading"><h2>Position overview</h2><span>North ↑ · Simplified coordinate view</span></div>
-      <svg viewBox="0 0 1000 400" role="img" aria-label="Latest observed vehicle positions around Sofia">
-        <defs>
-          <pattern id="coordinate-grid" width="100" height="50" patternUnits="userSpaceOnUse">
-            <path d="M 100 0 L 0 0 0 50" fill="none" stroke="#cedbdc" stroke-width="1"/>
-          </pattern>
-        </defs>
-        <rect width="1000" height="400" fill="url(#coordinate-grid)"/>
-        @for (zone of store.geofences(); track zone.id) {
-          <rect class="geofence-region"
-            [attr.x]="x(zone.minLongitude)" [attr.y]="y(zone.maxLatitude)"
-            [attr.width]="x(zone.maxLongitude) - x(zone.minLongitude)"
-            [attr.height]="y(zone.minLatitude) - y(zone.maxLatitude)">
-            <title>{{ zone.name }}</title>
-          </rect>
-          <text [attr.x]="x(zone.minLongitude) + 6" [attr.y]="y(zone.maxLatitude) + 18"
-            class="geofence-label">{{ zone.name }}</text>
-        }
-        @for (vehicle of store.vehicles(); track vehicle.id; let index = $index) {
-          @for (segment of vehicle.segments ?? []; track segment.id) {
-            @if (segment.points.length >= movement.minimumLinePoints) {
-              <polyline class="route-line" [attr.points]="segmentPoints(segment)" fill="none"
-                [attr.stroke]="colors[index % colors.length]" stroke-width="3" stroke-opacity="0.65" />
-            }
-          }
-        }
-        @for (vehicle of store.vehicles(); track vehicle.id; let index = $index) {
-          @if (vehicle.latestSample; as sample) {
-            <g [attr.transform]="markerTransform(sample)">
-              <title>{{ vehicle.name }}: {{ sample.speedKmh }} km/h, heading {{ sample.heading }}°</title>
-              <circle r="19" fill="white" [attr.stroke]="colors[index % colors.length]" stroke-width="2"/>
-              <path d="M 0 -14 L 9 10 L 0 6 L -9 10 Z" [attr.fill]="colors[index % colors.length]"/>
-            </g>
-            <text [attr.x]="x(sample.longitude) + 25" [attr.y]="y(sample.latitude) + 5" class="marker-label">{{ vehicle.name }}</text>
-          }
-        }
-      </svg>
+      <div class="map-heading"><h2>Live map</h2><span>North ↑ · OpenStreetMap</span></div>
+      <app-tracking-map [vehicles]="store.vehicles()" [geofences]="store.geofences()" />
       <p class="geofence-note">{{ geofence.messages.confirmation }}</p>
     </section>
 

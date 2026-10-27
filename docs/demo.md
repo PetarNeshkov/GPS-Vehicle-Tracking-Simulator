@@ -2,17 +2,16 @@
 
 ## Prepare and start
 
-Follow the [README prerequisites and restore/build commands](../README.md) first.
+Follow the [README setup steps](../README.md) first.
 The three applications need no database, Docker, map key or hosted service.
-Internet access is needed to restore dependencies; the running demo uses local
-HTTP and a simplified coordinate map.
+Internet access is needed to restore dependencies and load OpenStreetMap tiles.
+The API and simulator use local HTTP. The street background uses Leaflet and
+OpenStreetMap, with no API key. Synthetic paths are not matched to roads.
 
-In Rider, open `GPS-Vehicle-Tracking-Simulator.sln`, select **GPS Tracking — All**
-and press Run. This compound starts **GPS Tracking API**, **GPS Tracking Frontend**
-and **GPS Tracking Simulator**. Open `http://localhost:4200` manually. If the
-configuration is missing, reload the solution and check that the shared `.run/`
-files are present. Set Rider's Node interpreter to the README version and run
-`npm ci` before the first launch. Terminal alternatives are in the README.
+Start the API, simulator and dashboard using the README terminal commands, then
+open `http://localhost:4200`. If you use Rider, the optional **GPS Tracking — All**
+configuration starts the same three applications together. The demonstration
+below works with either startup method.
 
 Start with a fresh API and simulator for repeatable timings. Stop all three
 processes from an earlier run before launching another copy. API restart clears
@@ -20,6 +19,19 @@ all in-memory history, settings and simulation profiles. Simulator restart alone
 resets its route position, so restart both for a clean demonstration.
 
 ## Default demonstration: about eleven minutes
+
+First check the street-map background and visible OpenStreetMap attribution.
+Drag to pan, use the zoom controls, and click **Show all vehicles and routes**
+to restore the overview. Telemetry updates must preserve a manually chosen view.
+Markers show supplied heading; separate route lines must not join across stops.
+The two labeled rectangles are synthetic geofences, not administrative boundaries.
+
+To verify map failure separately from API connectivity, block
+`https://tile.openstreetmap.org/*` in browser Network tools and click **Retry map**
+if available, or pan to uncached tiles. A map-unavailable message should appear;
+vehicle cards and overlays must continue updating. Remove the block and click
+**Retry map** to restore the street background. Do not disable all networking,
+which would also disconnect the API. Unit tests simulate this failure locally.
 
 Leave the defaults unchanged: 80 km/h limit, 30 seconds of speeding, 180 seconds
 stopped and a global 10-metre stop radius. Timings below are approximate, measured
@@ -63,9 +75,11 @@ paginates rather than extending the page indefinitely.
    empty session with default settings. Start the simulator again for fresh data.
    Failed deliveries are skipped, not replayed. Stop all three apps when finished.
 
-For a shorter stop-only demonstration, the optional `scripts/Verify-M5.ps1`
-walkthrough in README uses a fresh API and frontend with the simulator stopped.
-It changes the stop duration to 20 seconds; it is not the default 180-second demo.
+For a shorter stop-only demonstration, start a fresh API and frontend with the
+simulator stopped, then run `./scripts/Verify-M5.ps1` from the repository root.
+It changes the stop duration to 20 seconds and sends seven observations at real
+ten-second intervals (about one minute). It verifies two routes and seven raw
+samples; it is not the default 180-second demo.
 
 ## Explain the design
 
@@ -84,8 +98,10 @@ It changes the stop duration to 20 seconds; it is not the default 180-second dem
 
 ## Delivery evidence
 
-The M8 entry in the [progress log](../GPS_TRACKING_IMPLEMENTATION_PLAN.md) records
-the actual clean-source build, test and runtime checks. A clean source copy on the
+See [current verification](verification.md) for the street-map update. The M8
+entry in the [progress log](../GPS_TRACKING_IMPLEMENTATION_PLAN.md) records earlier
+clean-source build, test and runtime checks. A clean source copy on the
 existing Windows machine does not establish fresh-machine or cross-platform
 compatibility. Rider configuration inspection and terminal startup do not establish
-that Rider's Run button was exercised; perform that final IDE smoke check locally.
+that Rider's Run button was exercised. If you choose the Rider shortcut, verify
+that its shared run configuration starts all three applications in your IDE.

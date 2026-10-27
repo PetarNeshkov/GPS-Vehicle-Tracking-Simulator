@@ -1,7 +1,53 @@
-* { box-sizing: border-box; }
-body { margin: 0; background: #edf3f3; color: #18353b; font-family: system-ui, sans-serif; }
-app-root { display: block; max-width: 1440px; margin: 0 auto; padding: 2rem 1.25rem; }
-h1 { font-size: clamp(1.4rem, 3vw, 2rem); margin: 0; }
+@import 'leaflet/dist/leaflet.css';
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #edf3f3;
+  color: #18353b;
+  font-family: system-ui, sans-serif;
+}
+
+app-root {
+  display: block;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem;
+}
+
+h1 {
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  margin: 0;
+}
+
+/* Leaflet creates marker elements outside Angular's scoped templates. */
+.tracking-map-marker {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 4px #0004;
+}
+
+.tracking-map-heading {
+  display: block;
+  width: 22px;
+  height: 28px;
+  background: currentColor;
+  clip-path: polygon(50% 0, 95% 100%, 50% 80%, 5% 100%);
+}
+
+.tracking-map-icon:focus-visible {
+  outline: 3px solid #18353b;
+  outline-offset: 3px;
+  border-radius: 50%;
+}
 
 .save-confirmation {
   margin: .75rem 0 0;

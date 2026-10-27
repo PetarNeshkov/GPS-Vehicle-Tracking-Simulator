@@ -1,0 +1,12 @@
+<div class="map-toolbar">
+  <span>Drag to pan. Use + / − to zoom.</span>
+  <button type="button" (click)="fitOverview()">Show all vehicles and routes</button>
+</div>
+@if (tilesUnavailable()) {
+  <p class="map-error" role="status">
+    Street map unavailable. Check your internet connection. Vehicle positions and routes still update.
+    <button type="button" (click)="retryTiles()">Retry map</button>
+  </p>
+}
+<div #mapContainer class="street-map" role="region" aria-label="Live vehicle map around Sofia"></div>
+<p class="map-note">Simulated paths connect GPS observations and may cross buildings or leave roads.</p>

@@ -1,4 +1,39 @@
-# Architecture and milestone decisions
+# Architecture and implementation decisions
+
+For current startup instructions and operational assumptions, use the
+[technical README](../README.md). Milestone references below explain historical
+implementation decisions; [current verification](verification.md) records the
+latest checks separately.
+
+## Street-map presentation
+
+`TrackingMapComponent` renders the same tracking snapshots using Leaflet 1.9.4
+and OpenStreetMap raster tiles. It receives vehicles and geofences from the
+dashboard; it makes no tracking HTTP requests and changes no domain rules.
+Each route segment becomes a separate polyline, each geofence a geographic
+rectangle, and each latest sample a marker whose arrow uses supplied heading.
+Single-point segments do not create lines. Names are inserted as text rather
+than interpreted as HTML by Leaflet.
+
+Live updates replace overlays while preserving pan/zoom. The overview button fits
+current markers, routes and geofences, falling back to Sofia bounds when empty.
+Session resets clear old overlays through the store's replacement snapshots.
+ResizeObserver keeps the map sized to its container; destruction removes the
+map, listeners and observer. Leaflet pointer events run outside Angular's zone.
+
+Tile errors are tracked independently of API connection state. Failed tiles
+display a retry message; position and route overlays keep updating. The tile
+provider URL, attribution and maximum zoom are in `map.constants.ts`. Leaflet
+JavaScript/CSS are bundled locally; only tile images require external requests.
+Normal browser caching and visible attribution follow the
+[OpenStreetMap tile policy](https://operations.osmfoundation.org/policies/tiles/).
+See the [Leaflet guide](https://leafletjs.com/examples/quick-start/) for the base
+map integration. Tests substitute a local image and exercise actual Leaflet layers
+without requesting public tiles.
+
+The map is geographic context, not a routing engine. Demo routes remain synthetic
+straight-line paths and may cross buildings or leave roads. There is no geocoding,
+road snapping, Google account, API key or offline tile downloader.
 
 ## Boundaries
 
@@ -119,8 +154,10 @@ persistence remains outside the agreed scope.
 - Angular uses typed HTTP services, a SignalR connection service and a signal-backed
   store. Initial connection and reconnection trigger REST synchronization with a
   five-second timeout. Failures preserve displayed data and trigger retries.
-  There is no regular snapshot polling. SVG markers use distinct colors
-  and heading arrows within fixed demo bounds. No stop status is inferred.
+  There is no regular snapshot polling. Leaflet markers use distinct colors
+  and heading arrows on the street map. The initial empty view uses Sofia bounds;
+  panning, zooming and fitting current overlays are available. Missing telemetry
+  does not imply a stop.
 
 Frontend feature services use the shared `ApiService` in `core/services` for
 GET/POST/PUT/PATCH/DELETE requests. `TrackingApiService` owns tracking endpoints and

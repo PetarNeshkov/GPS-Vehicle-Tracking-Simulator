@@ -12,14 +12,18 @@ import { TrackingDashboardComponent } from './tracking-dashboard.component';
 import { SettingsEditorComponent } from './settings-editor.component';
 import { TrackingConnectionService } from '../../core/services/tracking-connection.service';
 import { TrackingConnectionStub } from '../../core/services/tracking-connection.stub';
+import { TrackingMapComponent } from './tracking-map.component';
+import { MAP_TILES } from '../../core/constants/map.constants';
+import { TEST_MAP_TILES } from './tracking-map.test-config';
 
 describe('TrackingDashboardComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [CommonModule, SettingsEditorComponent, HistoryViewerComponent, AlertHistoryComponent,
-        TelemetryStatusComponent, SimulationEditorComponent],
+        TelemetryStatusComponent, SimulationEditorComponent, TrackingMapComponent],
       declarations: [TrackingDashboardComponent],
       providers: [provideZoneChangeDetection(), provideHttpClient(), provideHttpClientTesting(),
+        { provide: MAP_TILES, useValue: TEST_MAP_TILES },
         { provide: TrackingConnectionService, useClass: TrackingConnectionStub }]
     });
   });
@@ -36,7 +40,7 @@ describe('TrackingDashboardComponent', () => {
     http.expectOne(TRACKING.vehiclesPath).flush({ sessionId: 'session', vehicles: [waiting] });
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Waiting for GPS data');
-    expect(fixture.nativeElement.querySelectorAll('svg g').length).toBe(0);
+    expect(fixture.nativeElement.querySelectorAll('.tracking-map-marker').length).toBe(0);
 
     const connection = TestBed.inject(TrackingConnectionService) as unknown as TrackingConnectionStub;
     connection.updates$.next({ sessionId: 'session', vehicle: {
@@ -47,12 +51,12 @@ describe('TrackingDashboardComponent', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('85.5');
     expect(fixture.nativeElement.textContent).not.toContain('Waiting for GPS data');
-    expect(fixture.nativeElement.querySelector('svg g').getAttribute('transform')).toContain('rotate(0)');
+    expect(fixture.nativeElement.querySelector('.tracking-map-heading').style.transform).toBe('rotate(0deg)');
     fixture.destroy();
     http.verify();
   }));
 
-  it('projects labeled rectangles and renders confirmed membership and type-specific alerts', fakeAsync(() => {
+  it('renders geofences, confirmed membership and type-specific alerts', fakeAsync(() => {
     const fixture = TestBed.createComponent(TrackingDashboardComponent);
     const http = TestBed.inject(HttpTestingController);
     fixture.detectChanges();
@@ -72,11 +76,7 @@ describe('TrackingDashboardComponent', () => {
         ] }]
     });
     fixture.detectChanges();
-    const rectangle: SVGRectElement = fixture.nativeElement.querySelector('.geofence-region');
-    expect(Number(rectangle.getAttribute('x'))).toBeCloseTo(200);
-    expect(Number(rectangle.getAttribute('y'))).toBeCloseTo(75);
-    expect(Number(rectangle.getAttribute('width'))).toBeCloseTo(200);
-    expect(Number(rectangle.getAttribute('height'))).toBeCloseTo(250);
+    expect(fixture.nativeElement.querySelector('path.geofence-region')).not.toBeNull();
     const text: string = fixture.nativeElement.textContent;
     expect(text).toContain('Inside');
     expect(text).toContain('Entered West zone.');
@@ -99,10 +99,9 @@ describe('TrackingDashboardComponent', () => {
       segments: [segment('one', [23.312, 23.314]), segment('two', [23.320, 23.322]), segment('three', [23.330])]
     }] });
     fixture.detectChanges();
-    const lines = fixture.nativeElement.querySelectorAll('polyline.route-line');
+    const lines = fixture.nativeElement.querySelectorAll('path.route-line');
     expect(lines.length).toBe(2);
-    expect(lines[0].getAttribute('points').split(' ').length).toBe(2);
-    expect(lines[1].getAttribute('points').split(' ').length).toBe(2);
+    expect(lines[0].getAttribute('d')).not.toBe(lines[1].getAttribute('d'));
     expect(fixture.nativeElement.textContent).toContain('Stopped');
     expect(fixture.nativeElement.textContent).toContain('180 seconds of GPS coverage');
     fixture.destroy();

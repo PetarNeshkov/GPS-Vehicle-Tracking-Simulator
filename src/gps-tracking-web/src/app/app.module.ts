@@ -6,6 +6,7 @@ import { NgModule, provideZoneChangeDetection } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { provideHttpClient } from '@angular/common/http';
 import { TrackingDashboardComponent } from './features/tracking/tracking-dashboard.component';
+import { TrackingMapComponent } from './features/tracking/tracking-map.component';
 import { SettingsEditorComponent } from './features/tracking/settings-editor.component';
 
 import { AppComponent } from './app.component';
@@ -17,6 +18,7 @@ import { AppComponent } from './app.component';
   ],
   imports: [
     BrowserModule,
+    TrackingMapComponent,
     SimulationEditorComponent,
     SettingsEditorComponent,
     HistoryViewerComponent,
