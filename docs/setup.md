@@ -1,37 +1,72 @@
-# Technical setup and configuration
+# Configuration and verification
 
-Local vehicle-tracking demonstration: an ASP.NET Core API, Angular dashboard and
-separate .NET GPS simulator. Two vehicles send positions, speed and heading at
-real-time intervals of at least 10 seconds. The dashboard displays them on an
-OpenStreetMap street map, with speeding alerts, geofences and stop-separated routes.
+Use the [README](../README.md) to install dependencies and start the application
+from a terminal. Any editor or IDE can be used. The optional **GPS Tracking — All**
+configuration starts the same three applications in Rider.
 
-For a quick start from any terminal, follow the [project README](../README.md).
-This reference covers detailed setup, checks and configuration. An IDE is optional.
+## Runtime configuration
 
-## Prerequisites
+Paths below are relative to the repository root.
 
-| Tool | Version |
+| File | What to configure |
 | --- | --- |
-| .NET SDK | 10.0.402, required by `global.json` (roll-forward and previews disabled) |
-| Node.js | 24.19.0, recorded in `src/gps-tracking-web/.nvmrc` |
-| npm | 11.17.0 |
-| Angular / CLI | 22.2.3, installed locally by npm |
-| TypeScript | 6.0.3, installed locally by npm |
-| Chrome | Needed for the frontend headless tests |
+| `src/GpsTracking.Api/appsettings.json` | Vehicle IDs/names, initial thresholds, global stop radius, rectangular geofences and allowed `Frontend:Origin`. |
+| `src/GpsTracking.Api/Properties/launchSettings.json` | API address and Development environment for the `http` launch profile. |
+| `src/GpsTracking.Simulator/appsettings.json` | `Simulator:BackendBaseUrl`, two matching `VehicleIds` and `TickIntervalSeconds`. |
+| `src/gps-tracking-web/src/proxy.conf.cjs` | API and SignalR forwarding; backend override via `GPS_TRACKING_API_URL`. |
+| `src/gps-tracking-web/src/app/core/constants/map.constants.ts` | Street-map tile URL, provider attribution and maximum zoom. Rebuild the frontend after changes. |
+| `src/GpsTracking.Simulator/Movement/DemoRoutes.cs` | Synthetic route coordinates. |
+| `src/GpsTracking.Contracts/Tracking/SimulationProfile.cs` | Default simulation speeds and phase durations. |
 
-No database, Docker, global Angular CLI, development certificate or map API key
-is needed. Internet access is needed for dependency restoration and street-map
-tiles. The API and simulator run locally; their processing does not depend on the
-map service. The verified platform is Windows; see [verification](verification.md).
+Defaults are **80 km/h**, **30 seconds of speeding**, **180 seconds stopped**,
+and a **global 10-metre stop radius**. The API seeds two vehicles and two Sofia
+rectangles. Dashboard changes apply to the current API session; restarting the
+API restores startup defaults.
 
-## Install and verify
+Keep vehicle IDs aligned between the API and simulator. If changing API port
+5078, update its launch profile, simulator URL and frontend proxy together.
+If changing frontend port 4200, also update the API's `Frontend:Origin`.
+Restart affected processes after changing startup configuration.
 
-Run from the repository root. Restore commands use the committed lockfiles.
+Both .NET hosts accept standard environment overrides (`__` separates keys) and
+command-line configuration, for example:
 
-```powershell
-dotnet --version
-node --version
-npm --version
+```sh
+dotnet run --project src/GpsTracking.Simulator --launch-profile Simulator -- --Simulator:TickIntervalSeconds=15
+```
+
+Intervals below 10 seconds fail validation. Built-in phases support 10–15-second
+intervals; longer intervals need longer phases. The simulator loads its copied
+output configuration, so rebuild after editing its appsettings before using
+`--no-build`. Invalid IDs, thresholds, bounds and URLs fail startup validation.
+
+Simulation settings in the dashboard are separate from tracking thresholds.
+A saved profile is applied on the next successful simulator reporting cycle.
+A changed profile preserves position and restarts the current phase timer; it
+does not send an extra sample. Failed profile reads retain the current profile.
+
+## Health and API access
+
+Open these URLs in a browser, or request them with an HTTP client:
+
+| URL | Expected result |
+| --- | --- |
+| `http://localhost:5078/api/health` | API returns `{"status":"healthy"}`. |
+| `http://localhost:4200/api/health` | The same response through the frontend proxy. |
+| `http://localhost:5078/api/vehicles` | Session ID, two vehicle snapshots, global settings and geofences. |
+| `http://localhost:5078/openapi/v1.json` | OpenAPI document; available only in Development. |
+
+Live frontend updates use SignalR at `/hubs/tracking`. The dashboard reloads
+REST snapshots after connecting/reconnecting. It does not poll vehicle positions.
+Health checks verify the API, not the simulator or external tile service.
+
+## Checks and verification
+
+Run from the repository root. These checks are optional for viewing the demo.
+Chrome is required only for frontend headless tests. If it is not discovered,
+set `CHROME_BIN` to the Chrome executable path.
+
+```sh
 dotnet restore GPS-Vehicle-Tracking-Simulator.sln --locked-mode
 dotnet build GPS-Vehicle-Tracking-Simulator.sln --configuration Release --no-restore
 dotnet test GPS-Vehicle-Tracking-Simulator.sln --configuration Release --no-build --no-restore
@@ -40,154 +75,61 @@ npm --prefix src/gps-tracking-web run build
 npm --prefix src/gps-tracking-web test -- --watch=false --browsers=ChromeHeadless
 ```
 
-The .NET build does not install or build the frontend. Run both build commands.
-Frontend map tests use a local image, so they do not contact OpenStreetMap.
+The solution builds the .NET projects and tests. It also includes a frontend
+project entry for IDE navigation, using the Visual Studio JavaScript SDK.
+Angular dependencies and builds are managed separately by npm; the solution
+does not install or build them automatically. Terminal startup requires no IDE.
+NuGet and npm lockfiles preserve dependency versions. If a running process
+locks build output, stop it before rebuilding.
 
-## Start in three terminals
+Backend tests cover rule boundaries, settings reevaluation, API validation,
+concurrency, service lifetimes and simulator failures. Frontend tests cover
+snapshot merging, reconnects, forms, history and map presentation. Map tests
+use a local image and do not request public tiles.
 
-Run one command per terminal, from the repository root:
+Verification used Windows, .NET SDK 10.0.402, Node 24.19.0,
+npm 11.17.0 and Chrome Headless 156. The backend and frontend builds passed;
+86 backend and 30 frontend tests passed. Browser checks verified real street tiles,
+mobile layout, viewport preservation, tile failure/retry, live updates, browser
+refresh, stale telemetry, API session reset and separate route lines.
+The eleven-minute default scenario was not repeated end to end in that browser
+pass; automated tests cover its rules. Fresh-machine, cross-platform and Rider
+Run-button operation were not verified. Use the [demo guide](demo.md) for a
+visible walkthrough on the presentation machine.
 
-```powershell
-# Terminal 1: API
-dotnet run --project src/GpsTracking.Api --launch-profile http
+With the frontend IDE project entry restored, locked .NET
+restore and both builds passed without warnings; all 86 backend and 30 frontend
+tests passed again. Local documentation links were also checked. The frontend
+remains part of the solution and can also be run independently through npm.
+
+Dependency checks can be repeated with:
+
+```sh
+npm --prefix src/gps-tracking-web audit
+npm --prefix src/gps-tracking-web audit --omit=dev
 ```
 
-```powershell
-# Terminal 2: simulator
-dotnet run --project src/GpsTracking.Simulator --launch-profile Simulator
-```
+The recorded audit reported four findings in development/build/test
+dependencies (two high, one moderate, one low) and zero with `--omit=dev`.
+Installation also emitted existing dependency deprecation and optional native
+install-script notices; installation, builds and tests completed successfully.
 
-```powershell
-# Terminal 3: dashboard
-npm --prefix src/gps-tracking-web start
-```
+## External service and delivery scope
 
-Open **http://localhost:4200**. The API listens at **http://localhost:5078**.
-Stop each process with Ctrl+C. The hosts log startup, configuration failures and
-HTTP failures in their terminals. Startup ordering is not required: the frontend
-retries connection and the simulator retries with a fresh sample on its next cycle.
+Street tiles load directly from OpenStreetMap in the browser. Leaflet JavaScript
+and CSS are bundled locally. Visible attribution and normal browser caching are
+retained. Follow the [tile usage policy](https://operations.osmfoundation.org/policies/tiles/);
+public tiles have no availability guarantee. There is no bulk/offline download.
+For a larger deployment, configure a suitable provider and its attribution.
 
-Alternatively, open `GPS-Vehicle-Tracking-Simulator.sln` in Rider, configure the
-SDK/Node versions above, run `npm ci` once in `src/gps-tracking-web`, and select
-**GPS Tracking — All**. The shared `.run/` compound starts the API, frontend and
-simulator. Open the browser manually. Stop all three child configurations afterward.
-Reload the solution if the shared configurations are not listed.
+This delivery is intended for short local sessions: HTTP, no authentication,
+no database and no multi-instance coordination. State and history are unbounded
+in API memory and disappear on API restart. Frontend pagination limits rendered
+rows, not retained data or snapshot size. Browser/API clocks are assumed to be
+synchronized for the 30-second freshness indicator. Failed GPS deliveries are
+skipped, not replayed. See [architecture](architecture.md) for rule assumptions.
 
-## Verify the running application
-
-```powershell
-Invoke-RestMethod http://localhost:5078/api/health
-Invoke-RestMethod http://localhost:4200/api/health
-Invoke-RestMethod http://localhost:5078/api/vehicles
-```
-
-Both health requests return `status: healthy`. The snapshot contains a `sessionId`,
-two vehicles, global settings and geofences. After the simulator starts, both
-vehicles acquire samples and update approximately every 10 seconds.
-
-- Check the street background, two named markers, heading arrows and two labeled
-  geofences. Drag or zoom the map; live updates preserve your chosen view.
-  **Show all vehicles and routes** fits the current overlays into view.
-- Stop only the simulator: after 30 seconds telemetry becomes stale, while the
-  last positions remain visible. Connection status describes the API connection.
-- Refresh the browser: the current API session retains settings, alerts and routes.
-  Restart the API: reconnection loads a new session with default settings and
-  clears old overlays. Restart API and simulator together for a repeatable demo.
-- See [demonstration scenarios](demo.md) for speeding, geofence transitions,
-  stops, separate routes, settings and reconnect checks (about eleven minutes).
-
-The Development-only OpenAPI document is at
-[http://localhost:5078/openapi/v1.json](http://localhost:5078/openapi/v1.json).
-Live updates use SignalR at `/hubs/tracking`. REST supplies initial/reconnected
-snapshots; the dashboard does not periodically poll positions. Vehicle history
-and simulator profiles load on demand. The simulator reads its profile each cycle.
-
-## Configuration
-
-| Location | Purpose |
-| --- | --- |
-| `src/GpsTracking.Api/appsettings.json` | Two vehicle seeds, initial thresholds, global stop radius, rectangular geofences and `Frontend:Origin`. |
-| `src/GpsTracking.Api/Properties/launchSettings.json` | Development API URL/port. |
-| `src/GpsTracking.Simulator/appsettings.json` | `Simulator:BackendBaseUrl`, two matching `VehicleIds`, `TickIntervalSeconds`. |
-| `src/gps-tracking-web/src/proxy.conf.cjs` | API and SignalR proxy target; override with `GPS_TRACKING_API_URL`. |
-| `src/gps-tracking-web/src/app/core/constants/map.constants.ts` | Tile URL, provider attribution and maximum zoom; rebuild frontend after changes. |
-| `src/GpsTracking.Simulator/Movement/DemoRoutes.cs` | Synthetic route coordinates. |
-| `src/GpsTracking.Contracts/Tracking/SimulationProfile.cs` | Default per-vehicle simulation speeds and phase durations. |
-
-Defaults: 80 km/h speed limit, 30-second speeding duration, 180-second stop duration,
-and a **global** 10-metre stop radius. Dashboard edits apply to the current API
-session. API restart restores startup defaults. Simulator controls edit speeds and
-phase durations; a saved profile applies on the next successful simulator cycle.
-The active phase restarts its timer while preserving position.
-
-Both .NET hosts support standard environment overrides (`__` separates keys) and
-command-line configuration, for example:
-
-```powershell
-dotnet run --project src/GpsTracking.Simulator --launch-profile Simulator -- --Simulator:TickIntervalSeconds=15
-```
-
-Built-in phases support 10–15-second intervals. Longer intervals require longer
-phases; intervals below 10 seconds fail startup validation. The simulator reads
-its copied output configuration, so rebuild after editing its source appsettings
-before using `--no-build`. Keep vehicle IDs aligned between the two hosts.
-
-When changing the API port, update its launch profile, the simulator backend URL
-and the frontend proxy together. When changing the frontend port, also update
-`Frontend:Origin`. Restart affected processes after changing startup configuration.
-
-## Assumptions and limitations
-
-- **Session-only storage:** history, alerts, settings and simulation profiles live
-  in one API process. Browser refresh preserves them; API restart loses them.
-  History and cumulative snapshots are unbounded, suitable for short local demos.
-  UI pagination limits displayed rows, not retained data or network payloads.
-- **Synthetic movement:** paths follow predefined coordinates and straight lines,
-  without road routing or map matching. They can cross buildings on the street map.
-  Speeds change instantly; the supplied speed is authoritative for speeding rules.
-- **Observed time:** rules use accepted GPS timestamps. Four ten-second observations
-  at 00/10/20/30 cover a 30-second speeding window. Missing observations are skipped,
-  never buffered or replayed. A gap does not prove uninterrupted physical movement.
-- **Stops and routes:** stops use distance from a fixed anchor, not reported speed.
-  A completed route ends at stop onset; the next begins when movement resumes.
-  Stationary samples remain in raw history. Changing settings reevaluates unfinished
-  state; completed boundaries remain fixed.
-- **Geofences:** rectangular boundaries include their edges. Three observations
-  establish initial membership without an alert; two of the latest three confirm
-  subsequent transitions. Membership can lag behind the current marker.
-- **Clocks and restarts:** freshness uses backend receipt time and the browser clock,
-  assuming synchronized clocks. Restarting only the simulator resets its scenario
-  and can produce a jump in the existing API history.
-- **Map service:** Leaflet 1.9.4 uses OpenStreetMap raster tiles directly from the
-  browser, with visible attribution and normal browser caching. Internet access is
-  needed for uncached tiles. Failure displays a retry message while overlays and
-  telemetry keep updating. Public tiles have no availability guarantee; follow the
-  [provider's usage policy](https://operations.osmfoundation.org/policies/tiles/).
-  No bulk/offline download or tile proxy is implemented. A larger deployment should
-  configure a suitable provider and its attribution.
-- **Deployment scope:** local HTTP, no authentication, durable event queue or
-  multi-instance coordination. Concurrent settings edits use last-write-wins.
-  Hosted deployment is outside this delivery.
-
-## Troubleshooting
-
-| Symptom | Check |
-| --- | --- |
-| SDK not found | Install exactly 10.0.402; check `dotnet --version` from the repository root. |
-| Port already in use | Stop the previous API/frontend process before starting another copy. |
-| Waiting for GPS data | Start the simulator; inspect its logs, backend URL and vehicle IDs. |
-| Connection error | Check API health, frontend proxy target, allowed origin and `/hubs/tracking` WebSocket traffic. |
-| Street map unavailable | Allow browser access to `https://tile.openstreetmap.org`, then click **Retry map**. API health does not test the tile service. |
-| ChromeHeadless cannot start | Install Chrome or set `CHROME_BIN` to its executable path. |
-| Locked .NET build output | Stop the running Debug process, or build/test Release. |
-| Frontend dependencies out of sync | Stop the frontend and rerun `npm --prefix src/gps-tracking-web ci`. |
-
-## Further technical documentation
-
-- [Architecture and rule decisions](architecture.md)
-- [Demonstration scenarios](demo.md)
-- [Current verification results and limits](verification.md)
-- [Original requirements and historical implementation log](../GPS_TRACKING_IMPLEMENTATION_PLAN.md)
-
-Optional local material (not included in this checkout):
-[Подробно лично ръководство на български — PDF, HTML, Markdown и ZIP пакет](bg/README.md).
+The source handoff consists of the solution, `src/`, `tests/`, documentation,
+lockfiles and shared configuration. Generated `bin/`, `obj/`, `node_modules/`,
+`dist/`, `.angular/`, coverage output and personal IDE settings are excluded by
+`.gitignore`; they are not needed in a source package.

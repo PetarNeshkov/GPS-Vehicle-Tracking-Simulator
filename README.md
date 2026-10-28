@@ -98,5 +98,5 @@ The [demo walkthrough](docs/demo.md) covers the full default scenario in about
 
 - [Detailed setup, configuration and test commands](docs/setup.md)
 - [Architecture and rule decisions](docs/architecture.md)
-- [Verification results and known limitations](docs/verification.md)
+- [Checks and verification notes](docs/setup.md#checks-and-verification)
 - [OpenAPI document](http://localhost:5078/openapi/v1.json), available while the API runs in Development

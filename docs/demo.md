@@ -1,4 +1,4 @@
-# Assessment demonstration
+# Presentation walkthrough
 
 ## Prepare and start
 
@@ -25,13 +25,6 @@ Drag to pan, use the zoom controls, and click **Show all vehicles and routes**
 to restore the overview. Telemetry updates must preserve a manually chosen view.
 Markers show supplied heading; separate route lines must not join across stops.
 The two labeled rectangles are synthetic geofences, not administrative boundaries.
-
-To verify map failure separately from API connectivity, block
-`https://tile.openstreetmap.org/*` in browser Network tools and click **Retry map**
-if available, or pan to uncached tiles. A map-unavailable message should appear;
-vehicle cards and overlays must continue updating. Remove the block and click
-**Retry map** to restore the street background. Do not disable all networking,
-which would also disconnect the API. Unit tests simulate this failure locally.
 
 Leave the defaults unchanged: 80 km/h limit, 30 seconds of speeding, 180 seconds
 stopped and a global 10-metre stop radius. Timings below are approximate, measured
@@ -75,11 +68,16 @@ paginates rather than extending the page indefinitely.
    empty session with default settings. Start the simulator again for fresh data.
    Failed deliveries are skipped, not replayed. Stop all three apps when finished.
 
-For a shorter stop-only demonstration, start a fresh API and frontend with the
-simulator stopped, then run `./scripts/Verify-M5.ps1` from the repository root.
-It changes the stop duration to 20 seconds and sends seven observations at real
-ten-second intervals (about one minute). It verifies two routes and seven raw
-samples; it is not the default 180-second demo.
+For a shorter stop demonstration, lower Vehicle 1's stop duration to 20 seconds
+before its stationary phase starts around 3:30. It should confirm a stop around
+3:50; the default simulator still resumes around 7:00. Use the full default
+scenario above when presenting the original 180-second threshold.
+
+Optionally verify map failure separately from API connectivity by blocking
+`https://tile.openstreetmap.org/*` in browser Network tools and panning to
+uncached tiles. The map should show a failure message while telemetry continues.
+Remove the block and click **Retry map**. Do not disable all networking, which
+would also disconnect the API.
 
 ## Explain the design
 
@@ -96,12 +94,5 @@ samples; it is not the default 180-second demo.
   rows, not retained data or cumulative network payloads. Gaps in observations do
   not prove continuous physical movement. See [architecture](architecture.md).
 
-## Delivery evidence
-
-See [current verification](verification.md) for the street-map update. The M8
-entry in the [progress log](../GPS_TRACKING_IMPLEMENTATION_PLAN.md) records earlier
-clean-source build, test and runtime checks. A clean source copy on the
-existing Windows machine does not establish fresh-machine or cross-platform
-compatibility. Rider configuration inspection and terminal startup do not establish
-that Rider's Run button was exercised. If you choose the Rider shortcut, verify
-that its shared run configuration starts all three applications in your IDE.
+For repeatable build/test commands and the limits of completed verification,
+see [configuration and verification](setup.md#checks-and-verification).
