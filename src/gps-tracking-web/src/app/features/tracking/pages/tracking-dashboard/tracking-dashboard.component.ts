@@ -1,8 +1,8 @@
 import {Component, inject, OnDestroy, OnInit} from '@angular/core';
-import { MOVEMENT } from '../../core/constants/movement.constants';
-import { GEOFENCE } from '../../core/constants/geofence.constants';
-import {TRACKING} from '../../core/constants/tracking.constants';
-import {TrackingStore} from '../../core/services/tracking-store.service';
+import { MOVEMENT } from '../../../../core/constants/movement.constants';
+import { GEOFENCE } from '../../../../core/constants/geofence.constants';
+import {TRACKING} from '../../../../core/constants/tracking.constants';
+import {TrackingStore} from '../../../../core/services/tracking-store.service';
 
 @Component({
   selector: 'app-tracking-dashboard',

@@ -1,11 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, ElementRef, inject, Input, OnChanges, OnDestroy, signal, ViewChild } from '@angular/core';
-import { HISTORY } from '../../core/constants/history.constants';
+import { HISTORY } from '../../../../core/constants/history.constants';
 import { Subscription, timeout } from 'rxjs';
-import { MOVEMENT } from '../../core/constants/movement.constants';
-import { TRACKING } from '../../core/constants/tracking.constants';
-import { HistorySnapshot } from '../../core/models/movement';
-import { TrackingApiService } from '../../core/services/tracking-api.service';
+import { MOVEMENT } from '../../../../core/constants/movement.constants';
+import { TRACKING } from '../../../../core/constants/tracking.constants';
+import { HistorySnapshot } from '../../../../core/models/movement';
+import { TrackingApiService } from '../../../../core/services/tracking-api.service';
 
 @Component({
   selector: 'app-history-viewer', standalone: true, imports: [CommonModule],

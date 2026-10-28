@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
-import { ALERTS } from '../../core/constants/alerts.constants';
-import { TrackingAlert } from '../../core/models/tracking-settings';
+import { ALERTS } from '../../../../core/constants/alerts.constants';
+import { TrackingAlert } from '../../../../core/models/tracking-settings';
 import { AlertHistoryComponent } from './alert-history.component';
 
 describe('AlertHistoryComponent', () => {

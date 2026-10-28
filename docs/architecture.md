@@ -37,6 +37,38 @@ This is a small Clean Architecture implementation with lightweight CQRS:
 commands change state, queries read it, and controllers delegate business rules.
 There is no mediator framework, broker, ORM or separate read database.
 
+## Frontend folders
+
+The Angular application lives in `src/gps-tracking-web/src/app`:
+
+```text
+app/
+  app.component.*
+  app.module.ts
+  core/
+    constants/
+    models/
+    services/
+    types/
+  features/
+    tracking/
+      pages/
+        tracking-dashboard/
+      components/
+        alert-history/
+        history-viewer/
+        settings-editor/
+        simulation-editor/
+        telemetry-status/
+        tracking-map/
+```
+
+Each component folder keeps its TypeScript, HTML, CSS and tests together. The
+dashboard page composes the smaller tracking components. Core contains shared
+configuration constants, data models, API/realtime/state services and external
+type declarations. Service tests remain beside their services; the local map
+test configuration stays with the map component.
+
 ## Processing and synchronization
 
 A telemetry request supplies a timestamp, latitude, longitude, speed in km/h and

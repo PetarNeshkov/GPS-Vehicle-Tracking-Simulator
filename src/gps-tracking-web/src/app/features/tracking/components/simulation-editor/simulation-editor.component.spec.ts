@@ -1,8 +1,8 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
-import { FEEDBACK } from '../../core/constants/feedback.constants';
-import { SIMULATION } from '../../core/constants/simulation.constants';
+import { FEEDBACK } from '../../../../core/constants/feedback.constants';
+import { SIMULATION } from '../../../../core/constants/simulation.constants';
 import { SimulationEditorComponent } from './simulation-editor.component';
 
 describe('SimulationEditorComponent', () => {

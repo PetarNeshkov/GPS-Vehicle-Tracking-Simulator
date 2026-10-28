@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import * as L from 'leaflet/dist/leaflet-src.esm.js';
-import { MAP_TILES } from '../../core/constants/map.constants';
-import { VehicleSnapshot } from '../../core/models/vehicle-snapshot';
+import { MAP_TILES } from '../../../../core/constants/map.constants';
+import { VehicleSnapshot } from '../../../../core/models/vehicle-snapshot';
 import { TrackingMapComponent } from './tracking-map.component';
 import { TEST_MAP_TILES } from './tracking-map.test-config';
 

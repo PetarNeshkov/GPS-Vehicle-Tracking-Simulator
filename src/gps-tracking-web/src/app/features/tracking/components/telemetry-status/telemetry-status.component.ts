@@ -1,6 +1,6 @@
 import { Component, computed, input, OnDestroy, OnInit, signal } from '@angular/core';
 import { interval, Subscription } from 'rxjs';
-import { FRESHNESS } from '../../core/constants/freshness.constants';
+import { FRESHNESS } from '../../../../core/constants/freshness.constants';
 
 @Component({
   selector: 'app-telemetry-status',

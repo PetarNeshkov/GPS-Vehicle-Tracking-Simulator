@@ -1,9 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, input, OnChanges, signal, SimpleChanges } from '@angular/core';
-import { ALERTS } from '../../core/constants/alerts.constants';
-import { GEOFENCE } from '../../core/constants/geofence.constants';
-import { TrackingAlert } from '../../core/models/tracking-settings';
-import { VehicleSnapshot } from '../../core/models/vehicle-snapshot';
+import { ALERTS } from '../../../../core/constants/alerts.constants';
+import { GEOFENCE } from '../../../../core/constants/geofence.constants';
+import { TrackingAlert } from '../../../../core/models/tracking-settings';
+import { VehicleSnapshot } from '../../../../core/models/vehicle-snapshot';
 
 @Component({
   selector: 'app-alert-history',

@@ -3,11 +3,11 @@ import {
   signal, ViewChild
 } from '@angular/core';
 import * as L from 'leaflet/dist/leaflet-src.esm.js';
-import { MAP_TILES } from '../../core/constants/map.constants';
-import { MOVEMENT } from '../../core/constants/movement.constants';
-import { TRACKING } from '../../core/constants/tracking.constants';
-import { Geofence } from '../../core/models/geofence';
-import { VehicleSnapshot } from '../../core/models/vehicle-snapshot';
+import { MAP_TILES } from '../../../../core/constants/map.constants';
+import { MOVEMENT } from '../../../../core/constants/movement.constants';
+import { TRACKING } from '../../../../core/constants/tracking.constants';
+import { Geofence } from '../../../../core/models/geofence';
+import { VehicleSnapshot } from '../../../../core/models/vehicle-snapshot';
 
 @Component({
   selector: 'app-tracking-map',

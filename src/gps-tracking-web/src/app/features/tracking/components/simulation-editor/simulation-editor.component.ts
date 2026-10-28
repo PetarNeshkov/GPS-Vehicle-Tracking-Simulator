@@ -1,12 +1,12 @@
 import {Component, inject, Input, OnChanges, OnDestroy, signal} from '@angular/core';
 import {FormControl, FormGroup, ReactiveFormsModule} from '@angular/forms';
 import {Subscription, timeout, timer} from 'rxjs';
-import { FEEDBACK } from '../../core/constants/feedback.constants';
-import {SIMULATION} from '../../core/constants/simulation.constants';
-import {TRACKING} from '../../core/constants/tracking.constants';
-import {SimulationProfile} from '../../core/models/simulation-profile';
-import {ApiService} from '../../core/services/api.service';
-import {positiveDuration, positiveNumber} from './settings-editor.component';
+import { FEEDBACK } from '../../../../core/constants/feedback.constants';
+import {SIMULATION} from '../../../../core/constants/simulation.constants';
+import {TRACKING} from '../../../../core/constants/tracking.constants';
+import {SimulationProfile} from '../../../../core/models/simulation-profile';
+import {ApiService} from '../../../../core/services/api.service';
+import {positiveDuration, positiveNumber} from '../settings-editor/settings-editor.component';
 
 @Component({
   selector: 'app-simulation-editor',

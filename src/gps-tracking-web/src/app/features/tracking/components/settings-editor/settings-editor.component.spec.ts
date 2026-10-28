@@ -1,11 +1,11 @@
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
-import { FEEDBACK } from '../../core/constants/feedback.constants';
+import { FEEDBACK } from '../../../../core/constants/feedback.constants';
 import { Subject } from 'rxjs';
 import { SettingsEditorComponent } from './settings-editor.component';
-import { TrackingStore } from '../../core/services/tracking-store.service';
-import { VehicleUpdatedEvent } from '../../core/models/tracking-events';
-import { SETTINGS } from '../../core/constants/settings.constants';
-import { GlobalSettingsEvent } from '../../core/models/tracking-settings';
+import { TrackingStore } from '../../../../core/services/tracking-store.service';
+import { VehicleUpdatedEvent } from '../../../../core/models/tracking-events';
+import { SETTINGS } from '../../../../core/constants/settings.constants';
+import { GlobalSettingsEvent } from '../../../../core/models/tracking-settings';
 
 describe('SettingsEditorComponent', () => {
   it('shows global save confirmation for 15 seconds and removes its layout space', fakeAsync(() => {

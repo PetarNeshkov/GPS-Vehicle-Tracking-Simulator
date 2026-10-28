@@ -2,11 +2,11 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, inject, Input, OnChanges, OnDestroy, SimpleChanges } from '@angular/core';
 import { AbstractControl, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors } from '@angular/forms';
 import { Subscription, timer } from 'rxjs';
-import { FEEDBACK } from '../../core/constants/feedback.constants';
-import { SETTINGS } from '../../core/constants/settings.constants';
-import { GlobalSettings } from '../../core/models/tracking-settings';
-import { VehicleSnapshot } from '../../core/models/vehicle-snapshot';
-import { TrackingStore } from '../../core/services/tracking-store.service';
+import { FEEDBACK } from '../../../../core/constants/feedback.constants';
+import { SETTINGS } from '../../../../core/constants/settings.constants';
+import { GlobalSettings } from '../../../../core/models/tracking-settings';
+import { VehicleSnapshot } from '../../../../core/models/vehicle-snapshot';
+import { TrackingStore } from '../../../../core/services/tracking-store.service';
 
 export function positiveNumber(control: AbstractControl): ValidationErrors | null {
   const value: unknown = control.value;

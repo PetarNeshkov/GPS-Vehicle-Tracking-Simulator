@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { HistoryViewerComponent } from './history-viewer.component';
-import { TRACKING } from '../../core/constants/tracking.constants';
+import { TRACKING } from '../../../../core/constants/tracking.constants';
 
 describe('HistoryViewerComponent', () => {
   it('bounds rendered rows, browses newest first and resets to the newest page on refresh', () => {

@@ -1,20 +1,20 @@
-import { TelemetryStatusComponent } from './telemetry-status.component';
-import { SimulationEditorComponent } from './simulation-editor.component';
-import { AlertHistoryComponent } from './alert-history.component';
-import { HistoryViewerComponent } from './history-viewer.component';
+import { TelemetryStatusComponent } from '../../components/telemetry-status/telemetry-status.component';
+import { SimulationEditorComponent } from '../../components/simulation-editor/simulation-editor.component';
+import { AlertHistoryComponent } from '../../components/alert-history/alert-history.component';
+import { HistoryViewerComponent } from '../../components/history-viewer/history-viewer.component';
 import { CommonModule } from '@angular/common';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZoneChangeDetection } from '@angular/core';
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
-import { TRACKING } from '../../core/constants/tracking.constants';
+import { TRACKING } from '../../../../core/constants/tracking.constants';
 import { TrackingDashboardComponent } from './tracking-dashboard.component';
-import { SettingsEditorComponent } from './settings-editor.component';
-import { TrackingConnectionService } from '../../core/services/tracking-connection.service';
-import { TrackingConnectionStub } from '../../core/services/tracking-connection.stub';
-import { TrackingMapComponent } from './tracking-map.component';
-import { MAP_TILES } from '../../core/constants/map.constants';
-import { TEST_MAP_TILES } from './tracking-map.test-config';
+import { SettingsEditorComponent } from '../../components/settings-editor/settings-editor.component';
+import { TrackingConnectionService } from '../../../../core/services/tracking-connection.service';
+import { TrackingConnectionStub } from '../../../../core/services/tracking-connection.stub';
+import { TrackingMapComponent } from '../../components/tracking-map/tracking-map.component';
+import { MAP_TILES } from '../../../../core/constants/map.constants';
+import { TEST_MAP_TILES } from '../../components/tracking-map/tracking-map.test-config';
 
 describe('TrackingDashboardComponent', () => {
   beforeEach(() => {
