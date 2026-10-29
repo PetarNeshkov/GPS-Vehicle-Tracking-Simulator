@@ -3,6 +3,7 @@ import { SimulationEditorComponent } from '../../components/simulation-editor/si
 import { AlertHistoryComponent } from '../../components/alert-history/alert-history.component';
 import { HistoryViewerComponent } from '../../components/history-viewer/history-viewer.component';
 import { CommonModule } from '@angular/common';
+import { RouteListComponent } from '../../components/route-list/route-list.component';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZoneChangeDetection } from '@angular/core';
@@ -19,7 +20,7 @@ import { TEST_MAP_TILES } from '../../components/tracking-map/tracking-map.test-
 describe('TrackingDashboardComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [CommonModule, SettingsEditorComponent, HistoryViewerComponent, AlertHistoryComponent,
+      imports: [CommonModule, RouteListComponent, SettingsEditorComponent, HistoryViewerComponent, AlertHistoryComponent,
         TelemetryStatusComponent, SimulationEditorComponent, TrackingMapComponent],
       declarations: [TrackingDashboardComponent],
       providers: [provideZoneChangeDetection(), provideHttpClient(), provideHttpClientTesting(),

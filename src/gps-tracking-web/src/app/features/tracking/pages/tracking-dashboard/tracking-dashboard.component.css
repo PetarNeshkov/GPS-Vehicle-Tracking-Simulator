@@ -52,6 +52,11 @@ h2 {
   border-top-width: 4px;
 }
 
+app-route-list + app-history-viewer {
+  display: block;
+  margin-top: 0.6rem;
+}
+
 .speed {
   font-size: 2rem;
   font-weight: 650;

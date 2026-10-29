@@ -61,14 +61,7 @@
                 {{ status.stopElapsedSeconds | number:'1.0-0' }} seconds of GPS coverage.</p>
             }
           }
-          <details>
-            <summary>Routes ({{ vehicle.segments?.length ?? 0 }})</summary>
-            @for (segment of vehicle.segments ?? []; track segment.id) {
-              <p>{{ segment.startedAt | date:'medium' }} to
-                {{ segment.endedAt ? (segment.endedAt | date:'medium') : 'In progress' }}
-                ({{ segment.points.length }} points)</p>
-            }
-          </details>
+          <app-route-list [segments]="vehicle.segments ?? []" [sessionId]="store.currentSession()" />
           <app-history-viewer [vehicleId]="vehicle.id" [sessionId]="store.currentSession()" />
           <app-settings-editor [vehicle]="vehicle" [sessionId]="store.currentSession()" />
           <app-simulation-editor [vehicleId]="vehicle.id" [sessionId]="store.currentSession()" />

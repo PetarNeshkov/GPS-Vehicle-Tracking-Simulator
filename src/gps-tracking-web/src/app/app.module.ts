@@ -2,6 +2,7 @@ import { TelemetryStatusComponent } from './features/tracking/components/telemet
 import { SimulationEditorComponent } from './features/tracking/components/simulation-editor/simulation-editor.component';
 import { AlertHistoryComponent } from './features/tracking/components/alert-history/alert-history.component';
 import { HistoryViewerComponent } from './features/tracking/components/history-viewer/history-viewer.component';
+import { RouteListComponent } from './features/tracking/components/route-list/route-list.component';
 import { NgModule, provideZoneChangeDetection } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { provideHttpClient } from '@angular/common/http';
@@ -19,6 +20,7 @@ import { AppComponent } from './app.component';
   imports: [
     BrowserModule,
     TrackingMapComponent,
+    RouteListComponent,
     SimulationEditorComponent,
     SettingsEditorComponent,
     HistoryViewerComponent,

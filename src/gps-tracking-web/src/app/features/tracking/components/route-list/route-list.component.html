@@ -1,0 +1,42 @@
+<details class="routes" open>
+  <summary>Routes <span class="count">{{ segments().length }}</span></summary>
+  <p class="hint">Routes appear automatically as GPS data arrives. Newest first.</p>
+
+  @if (segments().length) {
+    <div class="filters" role="group" aria-label="Filter routes by status">
+      <button type="button" [attr.aria-pressed]="filter() === 'all'" (click)="setFilter('all')">All ({{ segments().length }})</button>
+      <button type="button" [attr.aria-pressed]="filter() === 'active'" (click)="setFilter('active')">In progress ({{ activeCount() }})</button>
+      <button type="button" [attr.aria-pressed]="filter() === 'completed'" (click)="setFilter('completed')">Completed ({{ segments().length - activeCount() }})</button>
+    </div>
+    <ol class="route-list" aria-label="Routes, newest first">
+      @for (route of visibleRoutes(); track route.id) {
+        <li class="route-row">
+          <div class="route-heading">
+            <span class="status" [class.active]="!route.endedAt">{{ route.endedAt ? 'Completed' : 'In progress' }}</span>
+            <span class="points">{{ route.points.length | number }} {{ route.points.length === 1 ? 'point' : 'points' }}</span>
+          </div>
+          <dl>
+            <div><dt>Started</dt><dd>{{ route.startedAt | date:'medium' }}</dd></div>
+            <div><dt>Ended</dt><dd>{{ route.endedAt ? (route.endedAt | date:'medium') : 'Receiving GPS data' }}</dd></div>
+          </dl>
+        </li>
+      } @empty {
+        <li class="empty">No {{ filter() === 'active' ? 'routes in progress' : 'completed routes' }} yet. Select All to see the other routes.</li>
+      }
+    </ol>
+    @if (filteredRoutes().length) {
+      <div class="pagination">
+        <span class="range">{{ firstIndex() + 1 }}–{{ firstIndex() + visibleRoutes().length }} of {{ filteredRoutes().length }}</span>
+        @if (pageCount() > 1) {
+          <nav aria-label="Route pages">
+            <button type="button" aria-label="Previous route page" [disabled]="currentPage() === 0" (click)="changePage(-1)">Previous</button>
+            <span>Page {{ currentPage() + 1 }} of {{ pageCount() }}</span>
+            <button type="button" aria-label="Next route page" [disabled]="currentPage() === pageCount() - 1" (click)="changePage(1)">Next</button>
+          </nav>
+        }
+      </div>
+    }
+  } @else {
+    <p class="empty">No routes yet. Start the simulator and wait for GPS data to see this vehicle’s routes here.</p>
+  }
+</details>
