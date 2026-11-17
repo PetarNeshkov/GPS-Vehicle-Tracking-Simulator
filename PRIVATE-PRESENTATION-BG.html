@@ -1,0 +1,1476 @@
+<!doctype html>
+<html lang="bg"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>План и защита — GPS Vehicle Tracking Simulator</title><style>
+:root { --ink:#233344; --muted:#627183; --accent:#126f73; --line:#dbe4e8; --paper:#fff; }
+* { box-sizing:border-box; }
+html { scroll-behavior:smooth; scroll-padding-top:26px; }
+body { margin:0; color:var(--ink); background:#f2f5f7; font:18px/1.75 'Segoe UI',Arial,sans-serif; }
+a { color:var(--accent); text-underline-offset:3px; overflow-wrap:anywhere; }
+.topbar { padding:20px 34px; background:#173d49; color:white; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.topbar strong { font-size:16px; letter-spacing:.04em; }
+.topbar span { font-size:14px; color:#c3d8df; }
+.topbar button { font:inherit; font-size:14px; color:white; background:transparent; border:1px solid #7798a5; border-radius:8px; padding:8px 16px; cursor:pointer; }
+.layout { display:grid; grid-template-columns:290px minmax(0,1060px); gap:30px; max-width:1450px; margin:32px auto; padding:0 24px; align-items:start; }
+aside { position:sticky; top:24px; max-height:calc(100vh - 48px); overflow:auto; padding:22px 18px; background:var(--paper); border:1px solid var(--line); border-radius:12px; font-size:14px; line-height:1.5; }
+aside h2 { margin:0 0 14px; font-size:17px; border:0; padding:0; }
+aside ol { padding-left:22px; margin:0; }
+aside li { margin:0 0 10px; padding-left:3px; }
+aside a { text-decoration:none; }
+aside a:hover { text-decoration:underline; }
+main { min-width:0; padding:48px 52px; background:white; border:1px solid var(--line); border-radius:12px; box-shadow:0 8px 35px #173d4908; }
+h1,h2,h3 { line-height:1.25; color:#173d49; }
+h1 { font-size:36px; margin:0 0 30px; letter-spacing:-.025em; }
+h2 { font-size:27px; margin:62px 0 24px; padding-top:26px; border-top:3px solid #d5e8e8; }
+h3 { font-size:21px; margin:34px 0 16px; }
+p { margin:0 0 18px; }
+li { margin:7px 0; }
+blockquote { margin:24px 0; padding:22px 26px; background:#eef7f6; border-left:4px solid var(--accent); border-radius:0 9px 9px 0; }
+blockquote p:last-child { margin-bottom:0; }
+.table-wrap { overflow-x:auto; margin:22px 0 30px; }
+table { width:100%; border-collapse:collapse; font-size:15px; line-height:1.6; }
+th,td { text-align:left; vertical-align:top; padding:13px 14px; border:1px solid var(--line); min-width:120px; overflow-wrap:anywhere; }
+th { background:#e8f0f3; color:#173d49; font-weight:650; }
+tbody tr:nth-child(even) { background:#f8fafb; }
+code { font: .88em/1.5 Consolas,'Courier New',monospace; background:#f0f3f5; padding:2px 4px; border-radius:3px; overflow-wrap:anywhere; }
+pre { padding:20px; border:1px solid var(--line); border-radius:9px; background:#f5f7f9; overflow:auto; line-height:1.5; font-size:14px; }
+pre code { padding:0; background:none; }
+.print-toc { display:none; }
+.endnote { margin-top:48px; border-top:1px solid var(--line); padding-top:18px; color:var(--muted); font-size:14px; }
+@media(max-width:1050px) { .layout { display:block; max-width:960px; } aside { position:static; max-height:none; margin-bottom:24px; } aside ol { columns:2; column-gap:30px; } aside li { break-inside:avoid; } }
+@media(max-width:650px) { body { font-size:17px; } .topbar { padding:16px; } .topbar span { display:none; } .layout { margin:16px auto; padding:0 12px; } main { padding:26px 20px; } aside ol { columns:1; } h1 { font-size:28px; } h2 { font-size:24px; } blockquote { padding:18px; } }
+@page { size:A4; margin:17mm 15mm 20mm; }
+@media print {
+ html { scroll-behavior:auto; } body { background:white; font-family:Arial,sans-serif; font-size:10.5pt; line-height:1.5; }
+ .topbar, aside { display:none; } .layout { display:block; margin:0; padding:0; max-width:none; }
+ main { padding:0; border:0; border-radius:0; box-shadow:none; }
+ h1 { font-size:25pt; margin:4mm 0 8mm; }
+ h2 { font-size:19pt; margin:0 0 5mm; padding-top:3mm; border-top:2px solid #d5e8e8; break-before:page; }
+ h3 { font-size:13pt; margin:6mm 0 3mm; }
+ h1,h2,h3 { break-after:avoid; } p { margin:0 0 3mm; orphans:3; widows:3; }
+ li { margin:1.8mm 0; } a { text-decoration:none; }
+ blockquote { padding:4mm 5mm; margin:4mm 0; border-radius:0; }
+ .table-wrap { overflow:visible; margin:4mm 0; }
+ table { font-size:9pt; line-height:1.42; table-layout:fixed; }
+ th,td { padding:2.2mm; min-width:0; } thead { display:table-header-group; } tr { break-inside:avoid; }
+ pre { white-space:pre-wrap; overflow:visible; overflow-wrap:anywhere; padding:3mm; font-size:8.5pt; border-radius:0; }
+ pre code { white-space:pre-wrap; } code { font-size:.88em; }
+ .print-toc { display:block; break-before:page; margin-top:3mm; }
+ .print-toc h2 { break-before:auto; } .print-toc li { margin:2mm 0; }
+ .endnote { font-size:9pt; margin-top:5mm; }
+}
+</style></head>
+<body><header class="topbar"><div><strong>ЛИЧНА ПОДГОТОВКА</strong><br><span>GPS Vehicle Tracking Simulator · 28 октомври 2026</span></div><button onclick="window.print()">Печат / PDF</button></header>
+<div class="layout"><aside aria-label="Съдържание"><h2>В този документ</h2><ol>
+<li><a href="#start">Основна теза и готово начало</a></li>
+<li><a href="#agenda">План и разпределение на времето</a></li>
+<li><a href="#requirements">Изискванията и договорените уточнения</a></li>
+<li><a href="#preparation">Подготовка преди представянето</a></li>
+<li><a href="#controls">Всяка контрола: действие, работа и ограничения</a></li>
+<li><a href="#demo">Демонстрационен сценарий и резервен вариант</a></li>
+<li><a href="#rules">Бизнес правилата с примери</a></li>
+<li><a href="#architecture">Архитектура и структура на приложението</a></li>
+<li><a href="#communication">Комуникация, конкурентност и възстановяване</a></li>
+<li><a href="#limitations">Силни страни и ограничения</a></li>
+<li><a href="#edges">Гранични случаи и спорни изисквания</a></li>
+<li><a href="#future">Бъдещо развитие, разгръщане и скалиране</a></li>
+<li><a href="#questions">Въпроси за защита и готови отговори</a></li>
+<li><a href="#verification">Тестове, доказателства и граници на проверките</a></li>
+<li><a href="#finish">Какво да отворя в кода и как да завърша</a></li>
+<li><a href="#sources">Източници и последна проверка</a></li>
+</ol></aside><main><h1>GPS Vehicle Tracking Simulator — личен план за представяне и защита</h1>
+<p><strong>Само за лична подготовка.</strong> Файлът е изключен локално от Git чрез <code>.git/info/exclude</code>; не е част от материалите за предаване. Изключването важи за това работно копие и не предотвратява ръчно копиране или качване.</p>
+<p><strong>Подготвен:</strong> 28.10.2026 г. · <strong>Проверена основа:</strong> <code>5e16405768bc5f490230f7d627e65568ca8b588f</code>.</p>
+<p>Описанието е сверено с текущия код: интерактивна Leaflet/OpenStreetMap карта и frontend структура с <code>pages/</code> и <code>components/</code>. Старото описание на опростена координатна SVG карта вече не представя текущия интерфейс.</p>
+<p>Текстовете в цитатни блокове могат да се използват при устната защита. Таблиците са справочник за въпроси. Предложенията за развитие са отделени от реализираните функции. Тестовете и пълната демонстрация не са изпълнявани повторно при създаването на този личен файл.</p>
+
+<nav class="print-toc"><h2>Съдържание</h2><ol>
+<li><a href="#start">Основна теза и готово начало</a></li>
+<li><a href="#agenda">План и разпределение на времето</a></li>
+<li><a href="#requirements">Изискванията и договорените уточнения</a></li>
+<li><a href="#preparation">Подготовка преди представянето</a></li>
+<li><a href="#controls">Всяка контрола: действие, работа и ограничения</a></li>
+<li><a href="#demo">Демонстрационен сценарий и резервен вариант</a></li>
+<li><a href="#rules">Бизнес правилата с примери</a></li>
+<li><a href="#architecture">Архитектура и структура на приложението</a></li>
+<li><a href="#communication">Комуникация, конкурентност и възстановяване</a></li>
+<li><a href="#limitations">Силни страни и ограничения</a></li>
+<li><a href="#edges">Гранични случаи и спорни изисквания</a></li>
+<li><a href="#future">Бъдещо развитие, разгръщане и скалиране</a></li>
+<li><a href="#questions">Въпроси за защита и готови отговори</a></li>
+<li><a href="#verification">Тестове, доказателства и граници на проверките</a></li>
+<li><a href="#finish">Какво да отворя в кода и как да завърша</a></li>
+<li><a href="#sources">Източници и последна проверка</a></li>
+</ol></nav><h2 id="start">1. Основна теза и готово начало</h2>
+<blockquote>
+<p>„Приложението демонстрира проследяване на два независимо движещи се автомобила около София. Отделен .NET симулатор генерира GPS наблюдения, ASP.NET Core API ги валидира и обработва, а Angular интерфейсът показва текущото състояние, маршрутите и известията върху реална карта.</p>
+<p>Основната задача е правилно да интерпретираме наблюденията във времето: кога има продължително превишаване на скоростта, кога е потвърдено влизане или излизане от геозона и кога престой разделя два маршрута. Потребителят може да променя праговете, а системата преоценява релевантните запазени данни.</p>
+<p>Реализацията е предназначена за локална демонстрация. Данните живеят в паметта на API и се губят при негов рестарт. Архитектурата отделя правилата от HTTP, интерфейса и конкретното съхранение, така че ограниченията и следващите стъпки да бъдат ясни.“</p>
+</blockquote>
+<p><strong>Пет неща, които трябва да се запомнят:</strong></p>
+<ul>
+<li>Скоростта за speeding идва от Simulator. Престоят се определя по разстояние от фиксирана опорна точка.</li>
+<li>Бизнес времето е GPS timestamp. Възрастта на телеметрията използва времето на получаване.</li>
+<li>Превишението изисква пълен период от наблюдения; геозоните използват мнозинство от последните три точки.</li>
+<li>Престой, потвърден по-късно, затваря маршрута в началото на престоя.</li>
+<li>Настройките на правилата и настройките на симулацията имат различно предназначение.</li>
+</ul>
+<p><strong>Кратък финален извод:</strong></p>
+<blockquote>
+<p>„За този обхват приоритетите са проверимо поведение, ясна демонстрация и проста локална работа. Най-важните следващи стъпки за реална система са трайност, ограничаване на историята, сигурен достъп, измерване на натоварването и запазване на реда на обработка при повече инстанции.“</p>
+</blockquote>
+<h2 id="agenda">2. План и разпределение на времето</h2>
+<h3>Основен вариант: около 18–20 минути</h3>
+<p>Стартирай чиста API и Simulator сесия непосредствено преди началото. Докато обясняваш архитектурата, сценарият продължава и събира история.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Време от началото</th>
+<th>Тема</th>
+<th>Какво показвам</th>
+<th>Каква теза защитавам</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0:00–1:00</td>
+<td>Цел и обхват</td>
+<td>Главния екран, двата автомобила</td>
+<td>От наблюдение до бизнес събитие</td>
+</tr>
+<tr>
+<td>1:00–2:30</td>
+<td>Карта и данни</td>
+<td>Pan/zoom, маркери, детайли, геозони</td>
+<td>Реална карта; синтетично движение; скорост/посока от телеметрията</td>
+</tr>
+<tr>
+<td>2:30–4:00</td>
+<td>Speeding и начало на престой</td>
+<td>Първото известие за Vehicle 1</td>
+<td>Пълен времеви прозорец и отделяне на скорост от движение</td>
+</tr>
+<tr>
+<td>4:00–6:30</td>
+<td>Архитектура и структура</td>
+<td>Solution, слоеве, път на една точка</td>
+<td>Граници, DI, handlers, общо състояние</td>
+</tr>
+<tr>
+<td>6:30–8:00</td>
+<td>Потвърден престой и нов маршрут</td>
+<td>Vehicle 1, Routes и история</td>
+<td>Край при началото на престоя; отделна линия след потегляне</td>
+</tr>
+<tr>
+<td>8:00–11:00</td>
+<td>Конкурентност и втори автомобил</td>
+<td>Vehicle 2, session/revision, snapshot</td>
+<td>Независими правила при споделено хранилище</td>
+</tr>
+<tr>
+<td>11:00–14:00</td>
+<td>Настройки и симулация</td>
+<td>Save vehicle/global; Simulator controls</td>
+<td>Незабавна преоценка срещу отложено прилагане от worker</td>
+</tr>
+<tr>
+<td>14:00–16:00</td>
+<td>Възстановяване и ограничения</td>
+<td>Refresh, stop на Simulator, stale; при време API restart</td>
+<td>Refresh, липсваща телеметрия и нова API сесия са различни случаи</td>
+</tr>
+<tr>
+<td>16:00–18:00</td>
+<td>Развитие и тестове</td>
+<td>План за подобрения и тестови групи</td>
+<td>Честна оценка на текущите граници</td>
+</tr>
+<tr>
+<td>След това</td>
+<td>Въпроси</td>
+<td>Подбран код според въпроса</td>
+<td>Аргументи и доказателства</td>
+</tr>
+</tbody>
+</table></div>
+<p>Времената на бизнес събитията са приблизителни. Първият успешен sample, HTTP забавянията и дискретното наблюдение ги отместват. Следи данните и логовете, вместо да обещаваш събитие в конкретна секунда.</p>
+<h3>Кратък вариант: 8–10 минути</h3>
+<p>Покажи целта и контролите за 2 минути, комуникацията и структурата за 3, правилата и един live alert за 2, ограниченията и бъдещето за 2. За всички default престои е нужен по-дълъг сценарий. Използвай предварително репетиран отделен сценарий от раздел 6, ако трябва да покажеш престой по-бързо, и обяви променените настройки.</p>
+<h2 id="requirements">3. Изискванията и договорените уточнения</h2>
+<p><strong>Произход:</strong> таблицата използва текущите <code>docs/architecture.md</code> и <code>docs/demo.md</code>, както и историческия <code>GPS_TRACKING_IMPLEMENTATION_PLAN.md</code> преди изтриването му в commit <code>847e6a5</code>. Историческият план сам е обозначен като възстановен handoff от предишен документ и уточнения на оценителите, а не дословен оригинал. При противоречие с оригинално задание или по-късен отговор на оценителите те трябва да имат предимство.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Тема</th>
+<th>Записано изискване / уточнение</th>
+<th>Как е реализирано и как го представям</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Автомобили</td>
+<td>Два независимо движещи се автомобила</td>
+<td>Два отделни simulator цикъла и отделни <code>VehicleSession</code>/rule instances</td>
+</tr>
+<tr>
+<td>Честота</td>
+<td>Не по-често от 10 секунди; редки изключения са допуснати</td>
+<td>Минимум 10 s; не се използват изключения и няма наваксващи поредици</td>
+</tr>
+<tr>
+<td>Телеметрия</td>
+<td>ID, координати, време на генериране, скорост и heading</td>
+<td>ID в URL; останалите полета в GPS JSON; валидация в API/Domain</td>
+</tr>
+<tr>
+<td>Скорост</td>
+<td>Подадената скорост е авторитетна за speeding</td>
+<td>Не се заменя с изчислена от две позиции скорост</td>
+</tr>
+<tr>
+<td>Heading</td>
+<td>Основно за визуализация</td>
+<td>Завърта стрелката; не определя престоя</td>
+</tr>
+<tr>
+<td>Speeding</td>
+<td>Всички наблюдения над прага за целия период; defaults 80 km/h и 30 s</td>
+<td>Точки на 00/10/20/30 s дават 30 s покритие; едно известие при непроменен епизод</td>
+</tr>
+<tr>
+<td>Престой</td>
+<td>В малък глобално конфигурируем радиус; default 10 m</td>
+<td>Разстояние до фиксиран anchor; различно от <code>speed == 0</code></td>
+</tr>
+<tr>
+<td>Разделяне</td>
+<td>Достатъчно дълъг престой, default 180 s</td>
+<td>Престой от 12:00, потвърден в 12:03, приключва предишния маршрут при 12:00</td>
+</tr>
+<tr>
+<td>Възобновяване</td>
+<td>Нов маршрут от наблюдението при подновено движение</td>
+<td>Излизане от радиуса на потвърдения престой; линия след поне две точки</td>
+</tr>
+<tr>
+<td>Сурова история</td>
+<td>Неподвижните точки остават достъпни</td>
+<td>Raw GPS history включва и тях</td>
+</tr>
+<tr>
+<td>Геозони</td>
+<td>Предварително зададени правоъгълници, наблюдавани точки; предложено „2 от 3“</td>
+<td>Rolling majority; без интерполация на ненаблюдавано пресичане</td>
+</tr>
+<tr>
+<td>Време</td>
+<td>Времето на генериране; предполага се подреден вход</td>
+<td>Правилата използват GPS timestamp; store допълнително отхвърля еднакви/по-стари времена</td>
+</tr>
+<tr>
+<td>Настройки</td>
+<td>Скоростният праг и durations са индивидуални; радиусът е глобален</td>
+<td>Live редакция и незабавна преоценка на релевантната история</td>
+</tr>
+<tr>
+<td>Конкретен пример</td>
+<td>След 20 s превишение, duration 30 → 15 да даде веднага alert</td>
+<td>Alert с времето на последната GPS точка, не с времето на натискане на Save</td>
+</tr>
+<tr>
+<td>Интерфейс</td>
+<td>Автомобили, движение, история, известия, настройки; опростена карта е допустима</td>
+<td>Сега има допълнително реална Leaflet карта; тя е подобрение, а не първоначално условие за routing engine</td>
+</tr>
+<tr>
+<td>Доставка</td>
+<td>Локална версия е достатъчна</td>
+<td>Три команди или Rider shortcut; няма изискване за публично хостване</td>
+</tr>
+<tr>
+<td>Persistence</td>
+<td>Незадължителна</td>
+<td>Избрано in-memory съхранение; рестартът изчиства състоянието</td>
+</tr>
+<tr>
+<td>Buffer/replay</td>
+<td>Изрично извън обхвата при Simulator outage</td>
+<td>Неуспешните доставки се пропускат; следва нова точка</td>
+</tr>
+<tr>
+<td>Архитектурни подходи</td>
+<td>Clean Architecture/CQRS са съображения; не налагат конкретна библиотека</td>
+<td>Използвани са слоеве и директни handlers без MediatR</td>
+</tr>
+<tr>
+<td>Автоматични тестове</td>
+<td>По историческия handoff не са задължителни</td>
+<td>Добавени са за важните времеви и конкурентни сценарии</td>
+</tr>
+</tbody>
+</table></div>
+<h3>Наши конкретизации, които трябва да представя като избори</h3>
+<ul>
+<li>Скорост, равна на прага, прекратява speeding. Точка точно на радиуса е вътре. Ръбовете на геозоните се включват.</li>
+<li>Първото membership на геозона се установява след три точки, без начално entry/exit известие.</li>
+<li>Anchor е фиксиран за кандидата за престой, за да не се сбърка бавно пълзене с неподвижност.</li>
+<li>Промените в настройки не пренаписват създадени alerts и граници на завършени маршрути.</li>
+<li>Последната обработена редакция печели; няма optimistic concurrency с очаквана версия.</li>
+<li>Stale след 30 s означава липса на новоприета телеметрия. Не означава спрял автомобил.</li>
+<li>Текущата реализация на промяна на simulation profile запазва позицията и фазата, но рестартира времето на фазата при действителна промяна.</li>
+</ul>
+<blockquote>
+<p>„Разграничавам какво е поискано от това, което съм избрал за конкретизация. Например липсата на replay след неуспешна доставка е договорен обхват. Инициализацията на геозоната без първоначално известие е конкретна политика на реализацията.“</p>
+</blockquote>
+<h2 id="preparation">4. Подготовка преди представянето</h2>
+<h3>4.1. Проверка на средата</h3>
+<p>От корена на repository, след инсталирани зависимости:</p>
+<pre><code class="language-powershell"># Терминал 1
+dotnet run --project src/GpsTracking.Api --launch-profile http
+
+# Терминал 2
+dotnet run --project src/GpsTracking.Simulator --launch-profile Simulator
+
+# Терминал 3
+npm --prefix src/gps-tracking-web start
+</code></pre>
+<p>Това са три отделни терминала. Алтернативата е Rider конфигурацията <strong>GPS Tracking — All</strong>. Отвори <code>http://localhost:4200</code>; API е на <code>http://localhost:5078</code>.</p>
+<p>Първоначално възстановяване, ако зависимостите липсват:</p>
+<pre><code class="language-powershell">dotnet restore GPS-Vehicle-Tracking-Simulator.sln --locked-mode
+npm --prefix src/gps-tracking-web ci
+</code></pre>
+<p>Следваща команда се изпълнява само при успешна предходна. Версиите на този checkout са фиксирани чрез <code>global.json</code>, <code>.nvmrc</code>/frontend настройки и lockfiles; сверявам ги с <code>docs/setup.md</code> преди представянето.</p>
+<h3>4.2. Личен списък за подготовка</h3>
+<ul>
+<li>Проверявам портове 4200 и 5078 и спирам по-стари копия на процесите.</li>
+<li>Проверявам API health директно и през frontend proxy: <code>/api/health</code>.</li>
+<li>Проверявам интернет за street tiles, видимия OpenStreetMap attribution и четимостта на екрана.</li>
+<li>Подготвям чиста API и Simulator сесия. Рестарт само на Simulator връща позицията му в началото и може да създаде скок в съществуваща история.</li>
+<li>За основния сценарий оставям 80 km/h, 30 s, 180 s и 10 m.</li>
+<li>Отварям предварително файловете за правилата, store, handler, worker и Angular store/map.</li>
+<li>Държа този личен файл извън предаваните материали. Не добавям връзка към него в публичния README.</li>
+</ul>
+<h2 id="controls">5. Всяка контрола: действие, работа и ограничения</h2>
+<h3>5.1. Общ екран и карта</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Контрола / елемент</th>
+<th>Какво прави и как работи</th>
+<th>Ограничение / какво да кажа</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Live tracking connected</code> и останалите connection статуси</td>
+<td>Показват свързване, повторно свързване и REST синхронизация</td>
+<td>Отнасят се до API връзката, а не до живота на Simulator или зареждането на tiles</td>
+</tr>
+<tr>
+<td>Съобщение за connection error</td>
+<td>Появява се при прекъсване/неуспешна синхронизация; последните данни остават</td>
+<td>Видима стара позиция не доказва, че е актуална</td>
+</tr>
+<tr>
+<td>Влачене на картата</td>
+<td>Leaflet премества изгледа; няма API заявка за промяна на автомобил</td>
+<td>Следващата телеметрия не връща автоматично избрания viewport</td>
+</tr>
+<tr>
+<td><code>+</code> / <code>−</code></td>
+<td>Стандартните Leaflet контроли променят zoom</td>
+<td>Wheel zoom е изключен чрез <code>scrollWheelZoom: false</code>; tile maxZoom е 19</td>
+</tr>
+<tr>
+<td><code>Show all vehicles and routes</code></td>
+<td><code>fitOverview()</code> побира наличните overlays: геозони, линии и маркери</td>
+<td>Включва цялата текуща маршрутна история; при много раздалечени данни изгледът става широк. При липса на валидни bounds използва default областта. Overview ограничава zoom до 15</td>
+</tr>
+<tr>
+<td>Цветен маркер и стрелка</td>
+<td>Latest sample поставя маркера; heading modulo 360 завърта стрелката</td>
+<td>Няма предсказване или плавна интерполация между samples; скок на координатите се вижда като скок на маркера</td>
+</tr>
+<tr>
+<td>Име до маркера</td>
+<td>Постоянен tooltip; името се вмъква като plain text</td>
+<td>Имената не се изпълняват като HTML от API</td>
+</tr>
+<tr>
+<td>Щракване върху маркер</td>
+<td>Popup с име, скорост и heading; затваря се със стандартното <code>×</code></td>
+<td>Информационен popup, не команда към автомобила. При ново render-ване overlays се пресъздават и popup може да се затвори</td>
+</tr>
+<tr>
+<td>Маршрутна линия / tooltip</td>
+<td>Отделна polyline за всеки segment; tooltip обозначава завършен или текущ маршрут</td>
+<td>Най-малко две точки; няма линия през паузата между два маршрута и няма road matching</td>
+</tr>
+<tr>
+<td>Зелени правоъгълници</td>
+<td>Конфигурираните геозони с постоянни имена</td>
+<td>Демонстрационни области, не административни граници; няма редактор за местене/размер</td>
+</tr>
+<tr>
+<td><code>Street map unavailable</code></td>
+<td>Отделен индикатор, ако има неуспешно заредени tile елементи</td>
+<td>Marker/route данните продължават да се обработват, ако API е достъпен</td>
+</tr>
+<tr>
+<td><code>Retry map</code></td>
+<td>Изчиства локалния списък с tile failures и извиква <code>redraw()</code></td>
+<td>Не рестартира API или Simulator и не гарантира възстановяване при продължаващ външен отказ</td>
+</tr>
+<tr>
+<td>OpenStreetMap attribution</td>
+<td>Видим източник на картовите данни</td>
+<td>Остава видим; картата зависи от външна услуга</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>„Leaflet показва географския контекст. Движението се генерира от нашия Simulator и не се изчислява по пътищата на картата. Затова преминаване през сграда е ограничение на симулацията, а не грешка в откриването на геозона.“</p>
+</blockquote>
+<h3>5.2. Информационни полета на всеки автомобил</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Елемент</th>
+<th>Значение</th>
+<th>Ограничение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Waiting for GPS data</code></td>
+<td>Още няма приета точка</td>
+<td>Автомобилът съществува като seed и без позиция</td>
+</tr>
+<tr>
+<td><code>Live</code> / <code>Stale</code></td>
+<td>Възраст спрямо <code>lastReceivedAt</code>; stale при &gt;=30 s; локално обновяване през 1 s</td>
+<td>Предполага приблизително синхронизирани API/browser часовници; не е business movement state</td>
+</tr>
+<tr>
+<td>Голямата стойност <code>km/h</code></td>
+<td>Подадена скорост от последната GPS точка</td>
+<td>Не е изчислена от картовото разстояние</td>
+</tr>
+<tr>
+<td><code>Heading</code></td>
+<td>Посока в градуси, визуализирана modulo 360</td>
+<td>Не се използва за доказване на престой</td>
+</tr>
+<tr>
+<td><code>Latitude</code>, <code>Longitude</code></td>
+<td>Последни координати; показват се закръглени</td>
+<td>Показаното закръгляне не заменя стойностите, използвани от правилата</td>
+</tr>
+<tr>
+<td><code>Latest GPS time</code></td>
+<td>Времето на генериране, форматирано от Angular</td>
+<td>Не е време на HTTP получаване; браузърната визуализация може да е в локалната часова зона</td>
+</tr>
+<tr>
+<td><code>Observations</code></td>
+<td>Брой приети GPS точки</td>
+<td>Не е revision: редакция на настройки може да увеличи revision без нова точка</td>
+</tr>
+<tr>
+<td>Membership за всяка геозона</td>
+<td>Unknown/Inside/Outside от backend правилото</td>
+<td>Може да изостава спрямо видимата позиция заради „2 от 3“</td>
+</tr>
+<tr>
+<td><code>Last reported movement</code></td>
+<td>Unknown, Moving, PossibleStop, Stopped</td>
+<td>Последен изчислен резултат; не се превключва само защото минава браузърно време</td>
+</tr>
+<tr>
+<td><code>Stop onset</code> и <code>seconds of GPS coverage</code></td>
+<td>Anchor време и покритие от приетите GPS timestamps</td>
+<td>Покритие през голяма празнина не доказва физическа неподвижност през целия период</td>
+</tr>
+</tbody>
+</table></div>
+<h3>5.3. Прагове за бизнес правилата — <code>Vehicle thresholds</code></h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Поле / бутон</th>
+<th>Какво управлява</th>
+<th>Пример за защита</th>
+<th>Ограничение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Speed limit (km/h)</code></td>
+<td>Прагът за speeding на този автомобил</td>
+<td>42 km/h при праг 40 е превишение; при праг 42 не е</td>
+<td>Крайно положително число; промяната не ускорява/забавя Simulator</td>
+</tr>
+<tr>
+<td><code>Speeding duration (seconds)</code></td>
+<td>Необходимото времево покритие над прага</td>
+<td>30 → 15 при 20 s налична история може веднага да създаде alert</td>
+<td>Положително цяло число до 2 147 483 647; не е интервал на GPS докладване</td>
+</tr>
+<tr>
+<td><code>Stop duration (seconds)</code></td>
+<td>Кога пространственият кандидат става потвърден престой</td>
+<td>При 20 вместо 180 s престоят се потвърждава по-рано</td>
+<td>Не променя колко дълго автомобилът е неподвижен в Simulator</td>
+</tr>
+<tr>
+<td><code>Save vehicle settings</code></td>
+<td>PUT на целия набор настройки; backend валидира, преоценява засегнатите правила и публикува snapshot</td>
+<td>Показвам HTTP и live резултатите като две доставки на една версия</td>
+<td>Формата се блокира по време на запис; няма частичен PATCH</td>
+</tr>
+<tr>
+<td><code>Saving…</code>, грешка, <code>Settings saved.</code></td>
+<td>Обратна връзка за заявката; успешното съобщение е за 15 s</td>
+<td>Успехът се вижда веднага, дори без нов GPS sample</td>
+<td>При timeout записът може вече да е станал; при грешка редакциите се запазват</td>
+</tr>
+</tbody>
+</table></div>
+<p>Незаписана dirty форма не се презаписва при обикновен live update. При нова API session формата се нулира към новото състояние. Друг оператор може междувременно да е записал различна стойност; dirty защита не е защита от конкурентен запис.</p>
+<h3>5.4. Глобална настройка — <code>Global settings — both vehicles</code></h3>
+<p><code>Stop radius (metres)</code> е едно крайно положително число, default 10 m. При <code>Save global settings</code> API обновява радиуса и преоценява movement на двата автомобила под общото заключване. Връща и публикува съгласувани snapshots. Приключилите маршрутни граници остават фиксирани.</p>
+<p>По-голям радиус допуска по-широко пространствено отклонение като престой. По-малък радиус може да покаже движение при последната точка, ако тя вече е извън потвърдения anchor. Промяната не мести автомобилите и не редактира правоъгълните геозони: stop radius и geofence са различни понятия.</p>
+<h3>5.5. <code>Simulator controls</code> — контрол на генерираното движение</h3>
+<p>Отварянето на секцията е локално UI действие. <code>Load simulator settings</code> прави GET на профила за конкретния автомобил; само отваряне не го променя. След успешно зареждане се показва формата, а load бутонът се заменя от нея.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Поле</th>
+<th>Предназначение</th>
+<th>Default Vehicle 1 / Vehicle 2</th>
+<th>Важна особеност</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Cruising speed (km/h)</code></td>
+<td>Скорост за нормално движение, recovery и resume</td>
+<td>42 / 66</td>
+<td>По време на stopped фазата скоростта остава 0; ефектът се вижда в cruising фаза</td>
+</tr>
+<tr>
+<td><code>Speeding phase speed (km/h)</code></td>
+<td>Скорост във фазата с име Speeding</td>
+<td>95 / 95</td>
+<td>Ако backend лимитът е над нея, няма нарушение въпреки името на фазата</td>
+</tr>
+<tr>
+<td><code>Initial driving (seconds)</code></td>
+<td>Продължителност на първата нормална фаза</td>
+<td>120 / 330</td>
+<td>Определя кога започва speeding в нов default цикъл</td>
+</tr>
+<tr>
+<td><code>Speeding phase (seconds)</code></td>
+<td>Продължителност на бързата фаза</td>
+<td>60 / 60</td>
+<td>Много кратка фаза може да не осигури достатъчно samples за alert</td>
+</tr>
+<tr>
+<td><code>Normal driving after speeding (seconds)</code></td>
+<td>Recovery между speeding и stop</td>
+<td>30 / 30</td>
+<td>Нормално прекъсва speeding, ако cruising скоростта е под/на лимита</td>
+</tr>
+<tr>
+<td><code>Stationary phase (seconds)</code></td>
+<td>Колко дълго Simulator стои на една позиция</td>
+<td>210 / 210</td>
+<td>Не е stop detection duration; трябва да има достатъчно наблюдавано време</td>
+</tr>
+<tr>
+<td><code>Resumed driving (seconds)</code></td>
+<td>Колко дълго се движи след спирането преди повторение на цикъла</td>
+<td>120 / 90</td>
+<td>Нов цикъл продължава геометричния маршрут; не е автоматичен reset до началната координата</td>
+</tr>
+</tbody>
+</table></div>
+<p><code>Save simulator settings</code> изпраща пълен profile чрез PUT. Нужни са положителни крайни скорости и положителни цели durations. Формата е блокирана докато има заявка; невалидна форма не може да се запази през бутона. Успешното съобщение е за 15 s.</p>
+<p><strong>Как точно се прилага:</strong> API съхранява профила в отделен in-memory store. Worker го изтегля в началото на следващ успешен цикъл. При реална промяна <code>ApplyProfile</code> запазва текущата позиция и фазовия индекс, но нулира времето на текущата фаза. Еднакъв профил не нулира таймера. Промяна само на друга фаза също рестартира текущия таймер, защото се заменя целият списък от фази.</p>
+<p><strong>Граници:</strong> няма Start/Pause/Stop/Reset на процеса в тази форма; няма промяна на reporting interval; няма broadcast за live синхронизация на profile формите в два браузъра. Успехът означава „API го записа“, а не „работещ Simulator го потвърди“. Ако Simulator е спрян, ефектът чака негово стартиране и успешно прочитане.</p>
+<h3>5.6. Маршрути — <code>Routes (N)</code></h3>
+<p>Разгъването показва начало, край или <code>In progress</code> и броя точки за всеки сегмент. Данните идват в tracking snapshots, така че отварянето не прави отделна заявка. N включва върнатите активни и приключили segments. Това е списък за преглед, а не редактор или route planner. Нов сегмент с една точка може да е в списъка, преди да има видима линия на картата.</p>
+<h3>5.7. Сурова история — <code>Raw GPS history</code></h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Контрола / елемент</th>
+<th>Действие</th>
+<th>Ограничение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Разгъване на секцията</td>
+<td>Отваря съдържанието</td>
+<td>Не зарежда автоматично история</td>
+</tr>
+<tr>
+<td><code>Load / refresh history</code></td>
+<td>GET на цялата приета история за автомобила</td>
+<td>Блокиран при текущо зареждане; таблицата е snapshot и трябва да се презареди за нови точки</td>
+</tr>
+<tr>
+<td><code>Snapshot at vehicle revision …</code></td>
+<td>Показва версията на заредената история</td>
+<td>Може да е по-стара от live картата, без това да е дефект</td>
+</tr>
+<tr>
+<td>Таблица <code>GPS time</code>, <code>Latitude</code>, <code>Longitude</code>, <code>km/h</code></td>
+<td>Най-новите точки са първи</td>
+<td>Включва неподвижните точки; heading съществува в модела, но няма отделна колона тук</td>
+</tr>
+<tr>
+<td><code>Previous</code> / <code>Next</code></td>
+<td>Страници по 20 реда, в границите на масива</td>
+<td>Страницирането е само в браузъра; няма server pagination и не спестява целия HTTP payload</td>
+</tr>
+<tr>
+<td>Скрол в таблицата</td>
+<td>Преглед в ограничена височина; при смяна на страница се връща отгоре</td>
+<td>Ограничава визуалната височина, не backend паметта</td>
+</tr>
+</tbody>
+</table></div>
+<p>При смяна на автомобил/session се отменя стара заявка и локалната история се изчиства. Отговор с различен session се отхвърля, за да не се смесят два живота на API.</p>
+<h3>5.8. История на известията — <code>Alert history</code></h3>
+<p>Показва общия брой, най-новите първи, автомобил, тип, време и подробности. За speeding се пазят наблюдаваната скорост и праговете при създаване; за geofence — зоната и посоката на преминаване. Старо известие не се редактира при нов праг.</p>
+<p><code>Previous</code>/<code>Next</code> сменят по 20 известия и нулират скрола. При първа/последна страница съответният бутон е disabled. Списъкът се обновява от store; нови записи могат да разместят съдържанието на страниците. Няма филтриране по период/автомобил, acknowledge, изтриване или експорт. Известията се обединяват по ID, но идентификаторите не са трайни през рестарт на API.</p>
+<h2 id="demo">6. Демонстрационен сценарий и резервен вариант</h2>
+<h3>6.1. Основният default сценарий — около 11 минути</h3>
+<p>С чисти API и Simulator и непроменени defaults:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Приблизителен момент от Simulator startup</th>
+<th>Какво показвам</th>
+<th>Как го обяснявам</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0:00–0:30</td>
+<td>Две позиции, скорости, heading, брояч; membership се установява</td>
+<td>Един sample не доказва движение; три samples инициализират геозоната</td>
+</tr>
+<tr>
+<td>По време на движение</td>
+<td>Геозони и entry/exit</td>
+<td>Решението използва наблюдения, не непрекъснато пресичане на начертана линия</td>
+</tr>
+<tr>
+<td>Около 2:30</td>
+<td>Speeding alert на Vehicle 1</td>
+<td>Фаза започва около 2:00; необходими са още 30 s GPS покритие</td>
+</tr>
+<tr>
+<td>Около 3:30–6:30</td>
+<td>PossibleStop → Stopped за Vehicle 1</td>
+<td>180 s близо до anchor; Vehicle 2 продължава независимо</td>
+</tr>
+<tr>
+<td>Около 6:00</td>
+<td>Speeding alert на Vehicle 2</td>
+<td>Различно фазово начало при същия механизъм</td>
+</tr>
+<tr>
+<td>Около 7:00–7:10</td>
+<td>Vehicle 1 потегля и започва нов route</td>
+<td>Скоростта може да се смени преди следващата точка да излезе от radius; границата се определя от позицията</td>
+</tr>
+<tr>
+<td>Около 10:00–10:40</td>
+<td>Vehicle 2 потвърждава stop и после потегля</td>
+<td>Същите правила, отделно състояние</td>
+</tr>
+</tbody>
+</table></div>
+<p>Докато чакам, показвам кода и обяснявам архитектурата. Не сменям simulator profiles по средата на този сценарий, защото това рестартира фазовия таймер и обезсмисля таблицата с времена.</p>
+<p>След default сценария показвам: промяна на vehicle threshold, global radius, simulator profile, refresh, спиране само на Simulator и stale след 30 s. API restart оставям накрая, защото изчиства натрупаната демонстрация.</p>
+<h3>6.2. Отделен кратък сценарий за speeding → stop → resume</h3>
+<p>Използвам го само след репетиция и ясно казвам, че демонстрационните прагове са променени, а GPS часовникът и reporting interval не са ускорени.</p>
+<ol>
+<li>Стартирам API и frontend със спрян Simulator.</li>
+<li>За Vehicle 1 задавам <code>Speed limit = 80</code>, <code>Speeding duration = 20</code>, <code>Stop duration = 20</code>, global radius оставям 10.</li>
+<li>В <code>Simulator controls</code> зареждам профила и записвам: cruising 42, speeding 95, initial driving 30 s, speeding phase 50 s, recovery 20 s, stationary 60 s, resume 40 s.</li>
+<li>Стартирам Simulator. При първия цикъл той прочита новия профил. Vehicle 2 остава с defaults.</li>
+<li>Ориентировъчно: около 30 s започва speeding, около 50 s може да се потвърди; около 100 s започва неподвижната фаза, около 120 s се потвърждава stop; около 160 s започва resume. Реалните наблюдения могат да изместят тези моменти.</li>
+<li>Показвам разликата между stop onset и момента на потвърждение. След следващите точки показвам отделната маршрутна линия.</li>
+</ol>
+<p>Този кратък профил не гарантира, че всички геозони ще бъдат преминати в краткия интервал; геометрията и покритото разстояние имат значение. За геозоните използвам default сценария или отделно обяснение с конкретни точки. След тази демонстрация рестартирам API и Simulator за връщане към напълно чист default сценарий.</p>
+<h3>6.3. Ако нещо не стане по време на защитата</h3>
+<ul>
+<li><strong>Няма street map:</strong> проверявам дали телеметрията и overlays се обновяват; обяснявам външния tile отказ и използвам <code>Retry map</code>.</li>
+<li><strong>Няма GPS данни:</strong> проверявам Simulator и неговите POST резултати; health endpoint доказва само API.</li>
+<li><strong>Няма speeding alert:</strong> проверявам подадена скорост, действителен лимит, начало на периода и времево покритие. Само три проби на 0/10/20 s не стигат за 30 s.</li>
+<li><strong>Няма линия след resume:</strong> нов route още може да има само една точка. Изчаквам следваща.</li>
+<li><strong>Времената са разместени:</strong> проверявам дали е имало profile edit, HTTP закъснение или стар процес; показвам действителните GPS времена.</li>
+<li><strong>Нужен е чист старт:</strong> спирам Simulator, рестартирам API и после Simulator; refresh сам не изчиства backend.</li>
+</ul>
+<h2 id="rules">7. Бизнес правилата с примери</h2>
+<h3>7.1. Speeding</h3>
+<p><code>SpeedingRule</code> пази начало на текущия период и флаг „вече известих“. Скорост &lt;= лимита изчиства периода и флага. Скорост &gt; лимита започва/продължава периода. Alert се създава при достигане на duration и липса на предишен alert за текущото квалифициращо състояние.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>GPS време</th>
+<th>Скорост при лимит 80</th>
+<th>Резултат за duration 30 s</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>00 s</td>
+<td>95</td>
+<td>Начало; 0 s покритие</td>
+</tr>
+<tr>
+<td>10 s</td>
+<td>95</td>
+<td>10 s; без alert</td>
+</tr>
+<tr>
+<td>20 s</td>
+<td>95</td>
+<td>20 s; без alert</td>
+</tr>
+<tr>
+<td>30 s</td>
+<td>95</td>
+<td>Един alert</td>
+</tr>
+<tr>
+<td>40 s</td>
+<td>95</td>
+<td>Няма нов alert</td>
+</tr>
+<tr>
+<td>50 s</td>
+<td>80</td>
+<td>Периодът се прекъсва и може да започне нов</td>
+</tr>
+</tbody>
+</table></div>
+<p><code>Reevaluate</code> при смяна на прага възстановява последователния квалифициращ край на историята. Не генерира всички възможни стари нарушения. При duration 30 → 15 след 20 s достатъчна история може да се създаде alert веднага. <code>OccurredAt</code> е последният GPS timestamp, <code>CreatedAt</code> е API времето на създаване.</p>
+<p><strong>Важен нюанс за защита:</strong> duration 30 → 60 след вече създаден alert може временно да направи периода недостатъчен и да освободи флага. На 60 s може да има втори alert, без скоростта да е падала. Това е избрана семантика при промяна на настройките и е бизнес въпрос за бъдещо уточнение; не казвам безусловно „никога няма втори alert при непрекъсната скорост“.</p>
+<h3>7.2. Геозони</h3>
+<p>Всеки автомобил има независимо правило за всяка геозона. Геометрията е правоъгълник с включени ръбове. Пази се прозорец от три bool наблюдения „вътре/вън“. Поне две вътре означават Inside, иначе Outside. До третата точка състоянието е Unknown; първото установяване не поражда известие.</p>
+<p>При установено Outside и последователност „вън, вътре, вътре“ последната точка потвърждава entry. Timestamp е нейното време. Ако автомобилът пресече зоната между две външни точки, събитието не се открива. Редуване около границата може да превключва мнозинството често; „2 от 3“ не е пълна защита срещу GPS шум.</p>
+<h3>7.3. Престой и сегменти</h3>
+<p><code>MovementRule</code> използва разстояние в метри до фиксиран anchor. <code>GeographicDistance.Meters</code> изчислява приблизително сферично географско разстояние с haversine. Това е пространствено правило и не проверява <code>speed == 0</code>.</p>
+<ul>
+<li>Първа точка: създава се кандидат/активен route; state е Unknown.</li>
+<li>Следваща точка извън radius: anchor се мести и state е Moving.</li>
+<li>Точка в radius: PossibleStop и проверка на GPS elapsed.</li>
+<li>Достатъчна продължителност: Stopped; предишният route приключва при anchor, ако е имало движение преди него.</li>
+<li>Докато е Stopped и точките са вътре: остават в raw history, без да удължават изминатия route.</li>
+<li>Излизане от радиуса: нов route и Moving.</li>
+</ul>
+<p>Пример: движение до B в 12:00, следващи близки точки до 12:03, duration 180 s. В 12:03 потвърждаваме престоя, но краят на route е 12:00. Ако автомобилът потегли в 12:05, новият route започва от първата наблюдавана точка извън радиуса около този момент. Ако автомобилът е неподвижен още от първата точка, не се създава фиктивен завършен изминат маршрут.</p>
+<p><strong>Защо фиксиран anchor:</strong> движение по 3 m на всяка стъпка би изглеждало „близко“ при сравняване само със съседната точка. След достатъчно стъпки автомобилът е далече от началото; фиксираният anchor разпознава това.</p>
+<h2 id="architecture">8. Архитектура и структура на приложението</h2>
+<h3>8.1. Система по време на работа</h3>
+<pre><code class="language-text">.NET Simulator -- HTTP GET profile / POST GPS --&gt; ASP.NET Core API
+                                                       |
+                                              In-memory state + rules
+                                                       |
+Angular browser -- REST load/settings/history --------&gt;|
+Angular browser &lt;-- SignalR vehicle/global events -----|
+       |
+       +-- HTTPS street tiles --&gt; OpenStreetMap
+</code></pre>
+<p>API и Simulator са отделни .NET процеси. Angular се изпълнява в браузъра; при разработка Node development server го доставя и проксира <code>/api</code> и <code>/hubs</code>. Domain/Application/Infrastructure/Contracts са библиотеки, а не отделни мрежови услуги.</p>
+<h3>8.2. Реална структура на repository</h3>
+<pre><code class="language-text">GPS-Vehicle-Tracking-Simulator.sln
+global.json                   # Избор на .NET SDK
+Directory.Build.props         # Общи build настройки
+README.md
+.run/                         # Споделени Rider startup shortcuts
+docs/
+  setup.md                    # Стартиране, конфигурация, проверки
+  demo.md                     # Демонстрационен сценарий
+  architecture.md             # Текущи архитектурни договори
+src/
+  GpsTracking.Domain/
+    Models/                   # GPS, vehicle/settings, alerts, movement, geofences
+    Rules/                    # SpeedingRule, GeofenceRule, MovementRule, distance
+    Constants/
+  GpsTracking.Application/
+    Abstractions/             # ITrackingStore, ITrackingPublisher, simulation store
+    Tracking/
+      Commands/               # Submit и updates
+      Queries/                # Snapshots, history, segments, settings, alerts
+      ...                     # Команди, резултати, application snapshots
+    Simulation/               # Профили и handlers
+  GpsTracking.Infrastructure/
+    Storage/                  # InMemoryTrackingStore, VehicleSession, profile store
+  GpsTracking.Contracts/
+    ApiRoutes.cs
+    Tracking/                 # HTTP/SignalR DTOs и SimulationProfile
+  GpsTracking.Api/
+    Program.cs                # Host и HTTP pipeline
+    Controllers/
+    Extensions/               # DI и mapping
+    Realtime/                 # Hub, publisher, session
+    Configuration/
+    Constants/
+    appsettings.json
+    Properties/launchSettings.json
+  GpsTracking.Simulator/
+    Program.cs
+    SimulationWorker.cs
+    Delivery/                 # TelemetryClient
+    Movement/                 # Routes, phases, progressors
+    Configuration/
+    Extensions/
+    appsettings.json
+  gps-tracking-web/
+    package.json              # npm зависимости и команди
+    angular.json
+    src/
+      main.ts
+      styles.css
+      proxy.conf.cjs
+      app/
+        app.module.ts
+        app.component.*
+        core/
+          constants/
+          models/
+          services/           # Api, TrackingApi, connection, store
+          types/              # Външни типови декларации
+        features/tracking/
+          pages/tracking-dashboard/
+          components/
+            tracking-map/
+            settings-editor/
+            simulation-editor/
+            history-viewer/
+            alert-history/
+            telemetry-status/
+tests/
+  GpsTracking.Tests/           # .NET unit/integration/concurrency проверки
+</code></pre>
+<p>Всяка frontend component папка държи TypeScript, HTML, CSS и <code>.spec.ts</code> заедно. Service тестовете са до услугите. <code>.esproj</code> включва frontend в IDE навигацията, но <code>dotnet build</code> не изпълнява автоматично npm install/build.</p>
+<h3>8.3. Отговорности и зависимости</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Слой</th>
+<th>Отговорност</th>
+<th>Основна граница</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Domain</td>
+<td>Бизнес модели, валидация и stateful правила</td>
+<td>Не зависи от HTTP, Angular, SignalR или конкретно хранилище</td>
+</tr>
+<tr>
+<td>Application</td>
+<td>Use cases и интерфейсите за store/publisher</td>
+<td>Познава Domain; не познава конкретния in-memory клас</td>
+</tr>
+<tr>
+<td>Infrastructure</td>
+<td>Реално съхранение и координация на session state</td>
+<td>Реализира application интерфейсите</td>
+</tr>
+<tr>
+<td>API</td>
+<td>Controllers, mapping, SignalR, configuration и composition</td>
+<td>Регистрира конкретните реализации и превежда резултатите към HTTP</td>
+</tr>
+<tr>
+<td>Contracts</td>
+<td>DTO и имена на transport договори</td>
+<td>Споделени между API и Simulator; Domain не ги използва</td>
+</tr>
+<tr>
+<td>Simulator</td>
+<td>Генерира движение и изпраща GPS по HTTP</td>
+<td>Не достъпва директно backend RAM или rule instances</td>
+</tr>
+<tr>
+<td>Angular</td>
+<td>UI, форми, клиентско състояние и карта</td>
+<td>Чете/пише само през договорите на API</td>
+</tr>
+</tbody>
+</table></div>
+<p>Dependency посоки: Application → Domain; Infrastructure → Application/Domain; API → Application/Infrastructure/Domain/Contracts; Simulator → Contracts. Runtime извикването handler → <code>ITrackingStore</code> се изпълнява от <code>InMemoryTrackingStore</code>, избран чрез DI.</p>
+<h3>8.4. Как защитавам архитектурните решения</h3>
+<blockquote>
+<p>„Използвам прагматичен вариант на Clean Architecture. Предимството е, че правилата могат да се проверяват без HTTP и без база, а външните механизми се свързват в API. Цената е повече модели, mappings и малки класове. За малка CRUD система по-проста организация би била достатъчна; тук времевите правила и тяхното тестване оправдават разделянето.“</p>
+<p>„CQRS е леко разделяне на commands и queries. Controller извиква handler директно. Read и write използват едно хранилище. Нямаме отделна read database, MediatR или event sourcing.“</p>
+<p>„Handlers са scoped към заявката, а stores са singleton, защото представляват споделената локална сесия. Ако store беше нов за всяка заявка, историята нямаше да е обща. Това е решение за конкретното in-memory съхранение, а не универсално правило за database repositories.“</p>
+</blockquote>
+<p><strong>Компромис, който трябва да призная:</strong> <code>InMemoryTrackingStore</code> не само пази точки; той извиква правилата, управлява ревизиите и създава snapshots. Това улеснява атомарността, но прави бъдеща смяна към база по-голяма промяна от подмяна на <code>List</code> със SQL. При развитие бих отделил processor за една автомобилна сесия от механиката на persistence.</p>
+<h3>8.5. Frontend структура и роли</h3>
+<p><code>TrackingDashboardComponent</code> подрежда екрана и стартира/спира <code>TrackingStore</code>. Store комбинира REST и SignalR и излага readonly signals. <code>TrackingConnectionService</code> управлява връзката и retry; <code>TrackingApiService</code> познава tracking endpoints; <code>ApiService</code> обвива <code>HttpClient</code>.</p>
+<p><code>TrackingMapComponent</code> получава snapshots/geofences като inputs и управлява Leaflet. <code>SettingsEditorComponent</code> записва през store. <code>SimulationEditorComponent</code> използва собствен GET/PUT цикъл за profile. <code>HistoryViewerComponent</code> зарежда history при поискване. <code>AlertHistoryComponent</code> получава масив alerts и страницира визуално. <code>TelemetryStatusComponent</code> обновява възрастта по локален timer.</p>
+<p>Map операции са извън Angular zone, а видимият tile error се обновява вътре в нея. <code>ResizeObserver</code> коригира размера на картата. При destroy се освобождават observer, tile listeners и map instance. Сега всички overlays се пресъздават при промяна на inputs — проста реализация с цена при голям брой точки.</p>
+<h2 id="communication">9. Комуникация, конкурентност и възстановяване</h2>
+<h3>9.1. Една GPS точка от начало до край</h3>
+<ol>
+<li>Worker прочита simulation profile по HTTP. При неуспех запазва последния валиден сценарий.</li>
+<li>По монотонно изминало време progressor изчислява позиция/фаза. GPS timestamp е UTC календарно време.</li>
+<li><code>TelemetryClient</code> прави POST <code>/api/vehicles/{id}/samples</code>.</li>
+<li>API проверява binding/required полета; handler създава валиден <code>GpsSample</code>.</li>
+<li>Store проверява известен ID и строго по-нов timestamp.</li>
+<li>Под общ lock добавя точката, отбелязва receipt time, изпълнява speeding/geofences/movement, увеличава revision и създава capture.</li>
+<li>След освобождаване на lock handler изчаква опит за SignalR публикация; timeout на publisher е 5 s и грешките се логват.</li>
+<li>При приемане HTTP е 204. Невалидно е 400, непознат ID е 404, непо-нов timestamp е 409.</li>
+<li>Angular проверява session/revision, слива данните и обновява екрана.</li>
+<li>Worker изчаква интервала след доставката. Няма replay или burst за наваксване.</li>
+</ol>
+<p><strong>204</strong> означава приета точка в RAM според правилата. Не е обещание за траен запис на диск или доставка до всеки браузър.</p>
+<h3>9.2. Защо lock е общ и публикацията е извън него</h3>
+<p>Общият gate пази съгласуваност между GPS точки, settings updates, правилата и reads. Глобален radius update може да обнови двата автомобила без друг reader да види „нов radius, стар movement за единия“.</p>
+<p>Мрежовата публикация е извън gate, защото бавен клиент не трябва да държи заключването. Това позволява revisions 11 и 12 да се доставят в обратен ред; клиентът сравнява версии. Gate е локален за един процес, няма distributed действие и не осигурява rollback при неочаквана частична in-memory грешка.</p>
+<h3>9.3. Начално зареждане и reconnect</h3>
+<p>Angular първо установява live връзката и буферира събитията, после зарежда REST snapshot и прилага по-новите buffered версии. Така се избягва празнината между „GET приключи“ и „live връзката започна“. При reconnect процедурата се повтаря. При REST failure има retry след 2 s, със запазване на последните полезни данни. Няма постоянно polling на vehicle positions; profile GET заявките от Simulator са отделен поток.</p>
+<ul>
+<li><code>sessionId</code>: идентичност на живота на backend state.</li>
+<li>Vehicle <code>revision</code>: версия на конкретен автомобил в тази сесия.</li>
+<li>Global <code>revision</code>: отделна версия за global settings.</li>
+<li>Client synchronization generation: различава стари и нови REST заявки.</li>
+<li>Alert ID: обединяване без повторение на един и същ запис.</li>
+</ul>
+<p>Стар vehicle snapshot не заменя по-новата позиция. Нов session може да започне с малки revisions и все пак е валиден. Историята от предишен session се заменя. Buферът пази най-новия snapshot за автомобил, защото събитията съдържат натрупано състояние; при бъдещи delta събития това правило трябва да се преработи.</p>
+<h3>9.4. Промяна на настройки</h3>
+<p>Vehicle settings: форма → PUT → handler → валидация → store и преоценка → snapshot → HTTP response и SignalR event. Глобалната промяна връща global revision и snapshots на двата автомобила. HTTP и live отговорите се обработват през общата логика на store, за да не връщат по-нова версия назад.</p>
+<p>Simulation profile: форма → PUT → отделен simulation store → следващ worker GET → <code>ApplyProfile</code>. Това не е същият поток и няма <code>SimulationSettingsUpdated</code> event.</p>
+<h2 id="limitations">10. Силни страни и ограничения</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Решение</th>
+<th>Полза в текущия обхват</th>
+<th>Реален негатив / ограничение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Отделни Domain правила</td>
+<td>Малки детерминирани тестове; бизнес понятията са видими</td>
+<td>Stateful instances изискват стратегия за възстановяване при persistence</td>
+</tr>
+<tr>
+<td>Слоеве и handlers</td>
+<td>Ясни use cases и зависимости</td>
+<td>Повече файлове и mapping; някои query handlers само препращат</td>
+</tr>
+<tr>
+<td>In-memory stores</td>
+<td>Лесен старт, без database setup</td>
+<td>Загуба при API restart; неограничена история и липса на архив</td>
+</tr>
+<tr>
+<td>Един общ lock</td>
+<td>Проверима атомарност и съгласуван global update</td>
+<td>Независимите автомобили чакат един друг; copying/reevaluation удължават секцията</td>
+</tr>
+<tr>
+<td>Snapshots и revisions</td>
+<td>По-просто възстановяване и устойчивост на разместена доставка</td>
+<td>Растящ payload и копиране на alerts/segments</td>
+</tr>
+<tr>
+<td><code>Clients.All</code></td>
+<td>Всички локални клиенти виждат актуализации</td>
+<td>Всяко събитие се праща до всички; няма subscriptions по автомобил/организация</td>
+</tr>
+<tr>
+<td>HTTP от Simulator</td>
+<td>Прост договор, лесна диагностика</td>
+<td>Профил GET + sample POST на всеки цикъл; изгубените доставки не се наваксват</td>
+</tr>
+<tr>
+<td>SignalR с REST resync</td>
+<td>Live updates и възстановяване на current state</td>
+<td>Best-effort публикация; липсва траен журнал и replay на събития</td>
+</tr>
+<tr>
+<td>Leaflet и OSM</td>
+<td>Реална карта без API key в локалната демонстрация</td>
+<td>Външна зависимост, синтетични линии, няма навигация по пътна мрежа</td>
+</tr>
+<tr>
+<td>Клиентска пагинация</td>
+<td>Екранът остава използваем</td>
+<td>Не ограничава backend RAM, HTTP response или browser state</td>
+</tr>
+<tr>
+<td>DTO отделени от Domain</td>
+<td>Transport промени не задължават бизнес модела да се промени</td>
+<td>C# и TypeScript типовете се поддържат ръчно в синхрон</td>
+</tr>
+<tr>
+<td>Точно два seed автомобила</td>
+<td>Ясен оценителски сценарий</td>
+<td>Startup validation изисква два; няма CRUD/регистрация на автомобили</td>
+</tr>
+<tr>
+<td>Локален HTTP без authentication</td>
+<td>Малко операции за стартиране</td>
+<td>Няма права за устройства/оператори, tenant isolation или settings audit; не е готов публичен service</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Три важни ограничения на надеждността:</strong></p>
+<ol>
+<li>Timeout не означава със сигурност „не е записано“ — store може вече да е приел промяната.</li>
+<li>Ако последната публикация се провали и няма следващо събитие/reconnect/refresh, друг браузър може да остане със стар изглед. Активната връзка сама не го поправя.</li>
+<li>API restart губи приетите in-memory данни. Reconnect възстановява само състоянието, което API все още има; не възстановява никога недоставени GPS точки.</li>
+</ol>
+<h2 id="edges">11. Гранични случаи и спорни изисквания</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Случай</th>
+<th>Сегашно поведение</th>
+<th>Риск / необходима бъдеща политика</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Скорост точно на лимита</td>
+<td>Не е speeding; освобождава latch</td>
+<td>Да се обясни строгото <code>&gt;</code></td>
+</tr>
+<tr>
+<td>Разстояние точно на radius</td>
+<td>Вътре е</td>
+<td>Floating-point и реална GPS точност трябва да се оценят при устройства</td>
+</tr>
+<tr>
+<td>Точка върху geofence ръб</td>
+<td>Вътре е</td>
+<td>Правоъгълният модел е проста геометрия, без tolerance</td>
+</tr>
+<tr>
+<td>Една или две geofence точки</td>
+<td>Membership остава Unknown</td>
+<td>Началното състояние изисква трета точка</td>
+</tr>
+<tr>
+<td>Пресичане между две външни точки</td>
+<td>Не се открива</td>
+<td>Изискване за interpolated crossings би било нова функционалност</td>
+</tr>
+<tr>
+<td>Редуване около граница</td>
+<td>Мнозинството може често да превключва</td>
+<td>Възможен пространствен/времеви хистерезис</td>
+</tr>
+<tr>
+<td>Бавно отместване по 3 m</td>
+<td>Фиксираният anchor се премества след излизане от radius</td>
+<td>Сравняване само на съседни точки би било грешно</td>
+</tr>
+<tr>
+<td>Скорост 0, но далечна позиция</td>
+<td>Movement може да е Moving</td>
+<td>Няма политика за противоречива телеметрия</td>
+</tr>
+<tr>
+<td>Положителна скорост, но една позиция</td>
+<td>Movement може да потвърди stop</td>
+<td>Speed и position са отделни входове; няма quality fusion</td>
+</tr>
+<tr>
+<td>Дълга липса на наблюдения</td>
+<td>Следваща точка може да даде голям elapsed coverage</td>
+<td>Няма max-gap правило; наблюдаваният период не доказва непрекъснатост</td>
+</tr>
+<tr>
+<td>Еднакъв/по-стар timestamp</td>
+<td>409 без приемане</td>
+<td>Редът е по timestamp; няма bounded reorder window</td>
+</tr>
+<tr>
+<td>Бъдещ timestamp</td>
+<td>Може да е валиден и да бъде приет</td>
+<td>Следващите нормални точки могат да се отхвърлят като стари; липсва clock-skew граница</td>
+</tr>
+<tr>
+<td>Невалидни координати или непълно тяло</td>
+<td>400</td>
+<td>Няма частична употреба на невалидния sample</td>
+</tr>
+<tr>
+<td>Непознат ID</td>
+<td>404</td>
+<td>Няма автоматична регистрация на нов автомобил</td>
+</tr>
+<tr>
+<td>Две различни точки с еднакво време</td>
+<td>Втората се отхвърля</td>
+<td>Timestamp не е универсален device event ID</td>
+</tr>
+<tr>
+<td>Simulator започва/се рестартира по време на стара API session</td>
+<td>Позицията може да скочи</td>
+<td>За чиста демонстрация рестартирам и двата процеса</td>
+</tr>
+<tr>
+<td>Запис на нов profile по средата на фаза</td>
+<td>Фазовият таймер се нулира</td>
+<td>Дори промяна само на друга фаза влияе на текущия времеви график</td>
+</tr>
+<tr>
+<td>Много кратка фаза</td>
+<td>Може да не бъде наблюдавана достатъчно пъти</td>
+<td>Валиден profile не гарантира задействане на всички правила</td>
+</tr>
+<tr>
+<td>Stop duration се намали</td>
+<td>Кандидатът може да се потвърди веднага</td>
+<td>Завършени граници не се преизчисляват назад</td>
+</tr>
+<tr>
+<td>Radius се намали при Stopped</td>
+<td>Latest point извън новия radius може да започне нов route</td>
+<td>Това е преоценка на наличната точка, не нов GPS sample</td>
+</tr>
+<tr>
+<td>Speeding duration 30 → 60 след alert</td>
+<td>Възможно е rearm и втори alert по-късно</td>
+<td>Нужна е бизнес дефиниция за идентичността на episode при редакции</td>
+</tr>
+<tr>
+<td>Едновременни редакции от браузъри</td>
+<td>Последната обработена промяна печели</td>
+<td>Няма expected revision/ETag; dirty form може да пази остаряла редакция</td>
+</tr>
+<tr>
+<td>REST отговор изпреварен от live event</td>
+<td>По-новите revisions се запазват</td>
+<td>Отделно следене на session и synchronization generation</td>
+</tr>
+<tr>
+<td>Загубена последна global публикация</td>
+<td>Друг клиент може да пази стария radius</td>
+<td>Следващ vehicle event не носи непременно global settings; нужен resync</td>
+</tr>
+<tr>
+<td>Tile failures</td>
+<td>Показва грешка; overlays продължават</td>
+<td>Retry не гарантира наличност на външния provider</td>
+</tr>
+<tr>
+<td>Map update при отворен popup</td>
+<td>Overlays се пресъздават</td>
+<td>Popup/focus могат да се загубят; бъдещо обновяване на слоевете по ID</td>
+</tr>
+<tr>
+<td>Много дълга сесия</td>
+<td>Историята, маршрутите и payload растат</td>
+<td>Няма retention, bounded queries, downsampling или дългосрочен benchmark</td>
+</tr>
+<tr>
+<td>Две API инстанции</td>
+<td>Всяка има собствена памет, session и rules</td>
+<td>Данните могат да се разделят и противоречат; load balancer сам не решава това</td>
+</tr>
+</tbody>
+</table></div>
+<h3>Неясноти, които бих уточнил преди реална експлоатация</h3>
+<p>Какво е допустимото закъснение? Колко пропуснати точки са приемливи? Трябва ли старо наблюдение да коригира вече издаден alert? Какво да правим при GPS неточност, скок и разминаване в часовниците? Колко време пазим историята? Кой има право да редактира настройки? Трябва ли всички автомобили да получават глобална настройка атомарно? Какво означава „без дублирани известия“ след промяна на праг?</p>
+<p>Тези въпроси променят модела и гаранциите. Не ги решавам произволно само с избор на база или queue.</p>
+<h2 id="future">12. Бъдещо развитие, разгръщане и скалиране</h2>
+<h3>12.1. Първи стъпки, подредени по цел</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Етап</th>
+<th>Какво бих добавил</th>
+<th>Защо</th>
+<th>Компромис и проверка</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Измерване</td>
+<td>Latency p95/p99, accepted/rejected, memory, payload, publication failures</td>
+<td>Показва реалните тесни места</td>
+<td>Overhead и поддръжка; еднакви условия за сравнение</td>
+</tr>
+<tr>
+<td>Ограничаване</td>
+<td>Retention, server pagination, time-range/cursor queries, по-малки live summaries</td>
+<td>Предвидим размер при дълга сесия</td>
+<td>Нови API договори; правилата трябва да запазят необходимото състояние за преоценка</td>
+</tr>
+<tr>
+<td>Трайност</td>
+<td>База за GPS, settings, alerts и възстановимо rule state</td>
+<td>Оцеляване след рестарт и audit история</td>
+<td>Транзакции, миграции, архиви и recovery тестове</td>
+</tr>
+<tr>
+<td>Сигурен достъп</td>
+<td>Device authentication, operator authorization, TLS, audit на настройки</td>
+<td>Контрол кой изпраща и кой редактира</td>
+<td>Нови роли и deployment конфигурация</td>
+</tr>
+<tr>
+<td>Надежден прием</td>
+<td>Sample identity, ограничени retries, durable queue/outbox при нужда</td>
+<td>Ясна гаранция за приетите данни</td>
+<td>Дубликати, backlog, идемпотентни consumers и backpressure</td>
+</tr>
+<tr>
+<td>Повече автомобили</td>
+<td>Регистър/CRUD, конфигурируеми сценарии, търсене и абонаменти</td>
+<td>Премахва твърдия размер от две коли</td>
+<td>Промени във validators, UI и ingestion; не е само добавяне на ID в JSON</td>
+</tr>
+<tr>
+<td>Множество инстанции</td>
+<td>Подредена обработка по vehicle ID, ownership и failover</td>
+<td>Независима обработка при по-голям вход</td>
+<td>По-сложна координация, versioning на settings и recovery</td>
+</tr>
+<tr>
+<td>По-добра карта</td>
+<td>Обновяване на layers по ID, ограничени пътеки, provider configuration</td>
+<td>По-малко DOM/Leaflet работа и запазени popups</td>
+<td>Повече client state; тестове за reset, изчезнали layers и lifecycle</td>
+</tr>
+<tr>
+<td>Реалистични маршрути</td>
+<td>Routing/road matching, quality/accuracy полета</td>
+<td>Приближава реални устройства и пътна мрежа</td>
+<td>Външни данни, договори и нови бизнес допускания</td>
+</tr>
+</tbody>
+</table></div>
+<h3>12.2. Защо само база данни не е достатъчна</h3>
+<p>Правилата пазят състояние: начало и latch на speeding, три последни geofence наблюдения, stop anchor, active/completed segments. При рестарт трябва или да възстановя това състояние от надеждни checkpoints, или да го преизчисля детерминирано от достатъчна история и версия на настройки. Иначе мога да дублирам известия или да променя маршрутни граници.</p>
+<p>За първи устойчив вариант бих оценил релационна база с индекси по vehicle/time и ясно разделение на processor от store. Специализирано времево съхранение има смисъл според обема и queries. ORM е инструмент за достъп; не задава сам атомарност, ordering и надеждна публикация.</p>
+<h3>12.3. Защо само втора API инстанция не е достатъчна</h3>
+<p>Ако точки за един автомобил се обработят от различни локални stores, всяко правило вижда непълна история. Session/revision стават несъгласувани. Споделена база също не определя сама кой processor притежава текущия state. Нужна е сериализация/ownership по автомобил и политика за отказ и повторения.</p>
+<p>Live transport има отделен проблем: достигане до клиенти, свързани към други сървъри. SignalR backplane или управлявана услуга решава разпространението; изискванията за session affinity зависят от избрания transport/hosting. Това не слива <code>MovementRule</code> instances. <a href="https://learn.microsoft.com/en-us/aspnet/core/signalr/scale?view=aspnetcore-10.0" target="_blank" rel="noopener noreferrer">Официална SignalR документация</a>.</p>
+<p>При partition по vehicle ID глобалният radius update вече не може евтино да използва един локален lock. Трябва да се уточнят версия на настройката и моментът на прилагане; евентуална промяна на атомарната семантика е бизнес решение.</p>
+<h3>12.4. Числов пример за защита</h3>
+<p>При N автомобила и една точка на T секунди средният вход е <code>N / T</code> точки/s. За 1 000 автомобила и T = 10 това са 100 точки/s и 8 640 000 точки/ден. При сегашния worker има и profile GET за всеки цикъл — ориентировъчно още толкова заявки, без да броим UI трафика и забавянията.</p>
+<p>При условен payload 2 KB и 20 браузъра, получаващи всички 100 updates/s, изходът е приблизително 4 MB/s преди overhead. Ако натрупаните route points направят payload 200 KB, става около 400 MB/s. <strong>Това са изчисления при допускания, не измерен капацитет на приложението.</strong></p>
+<p>Измервам и клиентски rendering, защото map component сега изчиства и изгражда всички overlays при update. Пагинацията на таблиците не премахва тази работа.</p>
+<h3>12.5. Потенциално разгръщане</h3>
+<p>Първият стъпаловиден deployment може да остане с един API процес: production Angular build като статични файлове, API зад HTTPS reverse proxy, конфигуриран SignalR forwarding, отделен Simulator/device ingress, трайна база и наблюдение. Development proxy и <code>npm start</code> не са production hosting стратегия. Трябва да се настроят адреси, <code>AllowedHosts</code>, CORS/origin, secrets, health/readiness и възстановяване от архив.</p>
+<p>Контейнерите могат да направят средата възпроизводима, но не осигуряват автоматично трайност или сигурност. Първо единична устойчива инстанция с измервания, после хоризонтално мащабиране, ако целта го изисква. Не бих започнал с microservices само заради бъдеща хипотетична нужда.</p>
+<p>Публичните OpenStreetMap tiles имат ограничен капацитет и нямат гарантирана наличност. За по-голям deployment трябва подходящ provider или собствено обслужване, с видим attribution и спазване на кеширането; масово/offline изтегляне от публичния tile endpoint не е част от приложението. <a href="https://operations.osmfoundation.org/policies/tiles/" target="_blank" rel="noopener noreferrer">Tile usage policy</a>, проверена на 28.10.2026 г.</p>
+<h3>12.6. Алтернативи, които мога да сравня аргументирано</h3>
+<ul>
+<li><strong>Polling:</strong> по-проста client логика за малко данни; повтарящи се заявки и trade-off между интервал и актуалност. SignalR е подходящ за текущото live наблюдение, но изисква reconnect/resync логика.</li>
+<li><strong>SSE:</strong> естествено еднопосочно изпращане към браузър; разумна алтернатива, понеже writes тук са REST. Смяната не решава persistence и ordering.</li>
+<li><strong>Пълни snapshots:</strong> лесни за сливане и recovery; растящ payload. <strong>Deltas:</strong> по-малки updates, но задължителни gap detection, sequence/replay/resync и нова buffer логика.</li>
+<li><strong>Общ lock:</strong> проста атомарност. <strong>Per-vehicle обработка:</strong> повече паралелност, но изисква решение за global updates и coherent reads.</li>
+<li><strong>Директен HTTP:</strong> малко инфраструктура. <strong>Queue:</strong> отделя приемане и обработка, но добавя backlog, дублирана доставка и нужда от идемпотентност.</li>
+<li><strong>Слоеве:</strong> ясни зависимости. <strong>Vertical slices:</strong> по-близо държат файловете на един use case; могат да намалят навигацията. Изборът зависи от реалната сложност, а не от броя папки.</li>
+</ul>
+<h2 id="questions">13. Въпроси за защита и готови отговори</h2>
+<p><strong>Защо няма база данни?</strong></p>
+<blockquote>
+<p>„Persistence е била незадължителна за оценителския обхват. Избрах in-memory session за лесно локално стартиране и фокус върху правилата. Цената е загуба при рестарт и неограничено натрупване; за реална история бих добавил трайност и recovery на rule state.“</p>
+</blockquote>
+<p><strong>Защо не използваш MediatR?</strong></p>
+<blockquote>
+<p>„Commands и queries вече имат ясни handlers и могат да се извикват директно. Dispatcher библиотека не е нужна за толкова малък набор use cases. Бих я оценил при конкретна нужда от общ pipeline, а не за да нарека структурата CQRS.“</p>
+</blockquote>
+<p><strong>Защо не държиш бизнес логиката в controller?</strong></p>
+<blockquote>
+<p>„Controller превежда HTTP договорите и резултатите. Правилата трябва да могат да се тестват независимо от уеб слоя. Така мога да сменя входния механизъм, без да пренаписвам speeding алгоритъма.“</p>
+</blockquote>
+<p><strong>Къде архитектурата не е идеално чиста?</strong></p>
+<blockquote>
+<p>„Store координира и rule execution под lock. Това прави атомарната операция проста, но смесва persistence и processing отговорности. При трайно съхранение бих отделил processor, като запазя реда и гаранциите.“</p>
+</blockquote>
+<p><strong>Защо lock е един за двата автомобила?</strong></p>
+<blockquote>
+<p>„Пази съгласуваност при глобалния радиус и reads. За два автомобила е лесен за проверка компромис. При измерен contention бих разгледал сериализация по автомобил и нова политика за глобалните updates.“</p>
+</blockquote>
+<p><strong>Защо не публикуваш, докато държиш lock?</strong></p>
+<blockquote>
+<p>„Мрежата може да се забави. Snapshot се улавя под lock, но изпращането е след него. Разместеният ред на доставки се управлява с ревизии.“</p>
+</blockquote>
+<p><strong>Какво правиш, ако SignalR се провали?</strong></p>
+<blockquote>
+<p>„Приетите данни остават в API. Publisher логва отказа. Следващ snapshot или REST resync може да възстанови изгледа; няма трайна гаранция за всяко отделно live съобщение.“</p>
+</blockquote>
+<p><strong>Защо е нужен REST, след като има SignalR?</strong></p>
+<blockquote>
+<p>„REST възстановява пълното актуално състояние при първа връзка и reconnect. Live каналът доставя промени. При свързване буферирам events, зареждам snapshot и сливам по-новите версии.“</p>
+</blockquote>
+<p><strong>Защо са нужни и session, и revision?</strong></p>
+<blockquote>
+<p>„Revision сравнява версии в един живот на state. След API restart броячите започват отначало. Session казва, че това е ново състояние и по-малката revision не означава стар отговор.“</p>
+</blockquote>
+<p><strong>Защо спиране не е speed = 0?</strong></p>
+<blockquote>
+<p>„Изискването е пространствено — оставане в радиус. Затова използвам координатите и фиксиран anchor. Подадената скорост е отделният авторитетен вход за speeding.“</p>
+</blockquote>
+<p><strong>Защо маршрутът приключва преди момента, когато разбираме за престоя?</strong></p>
+<blockquote>
+<p>„Достатъчната продължителност се доказва по-късно, но бизнес границата е началото на престоя. Потвърждаваме в 12:03, а затваряме при точката от 12:00.“</p>
+</blockquote>
+<p><strong>Каква е разликата между Stop duration и Stationary phase?</strong></p>
+<blockquote>
+<p>„Първото е праг за разпознаване от backend. Второто определя колко дълго Simulator произвежда неподвижна позиция. Едното променя интерпретацията, другото — генерираните данни.“</p>
+</blockquote>
+<p><strong>Защо след Save simulator settings скоростта не се промени веднага?</strong></p>
+<blockquote>
+<p>„Профилът се прилага при следващ успешно прочетен reporting цикъл. Освен това cruising speed няма видим ефект, ако автомобилът е във фаза stopped или speeding. Потвърждението е за API запис, не за worker acknowledgment.“</p>
+</blockquote>
+<p><strong>Защо автомобилът е вътре в правоъгълника, но още пише Outside?</strong></p>
+<blockquote>
+<p>„Позицията е последната точка, а membership е потвърдено мнозинство от последните три. Това е очаквано закъснение, не смесване на данни.“</p>
+</blockquote>
+<p><strong>Какво става при реални GPS грешки?</strong></p>
+<blockquote>
+<p>„Има валидация на диапазони и ред на timestamps, но няма accuracy, quality filtering или clock-skew политика. Това е област за развитие, особено заедно с изискванията за пропуски и закъснели точки.“</p>
+</blockquote>
+<p><strong>Щом историята има страници, защо паметта расте?</strong></p>
+<blockquote>
+<p>„Пагинацията е UI slice на вече изтеглен масив. Store пази историята, а route/alert snapshots също растат. За ограничен ресурс са нужни retention и server-side ограничени справки.“</p>
+</blockquote>
+<p><strong>Какво бих променил първо при 1 000 автомобила?</strong></p>
+<blockquote>
+<p>„Първо измерване и премахване на твърдия обхват от две коли. След това ограничаване на историята, payload и абонаментите. По данни бих променил processing/store и lock модела. Повече API копия върху сегашната локална памет биха разделили state.“</p>
+</blockquote>
+<p><strong>Това event sourcing ли е?</strong></p>
+<blockquote>
+<p>„Не. GPS history не е пълен траен журнал на всички настройки и системни събития, от който детерминирано възстановяваме всяка версия. Имаме state плюс история на наблюденията.“</p>
+</blockquote>
+<p><strong>Как е защитен API?</strong></p>
+<blockquote>
+<p>„Текущата доставка е локална и няма authentication/authorization. CORS и AllowedHosts са част от web конфигурацията, но не заменят идентичност и права. Преди публично разгръщане бих добавил device и operator access control.“</p>
+</blockquote>
+<p><strong>Какво доказват тестовете?</strong></p>
+<blockquote>
+<p>„Проверяват гранични стойности, времеви преходи, преоценка, HTTP договори, конкурентност, reconnect и map поведение. Това не е измерване на голям автопарк или доказателство за всички реални мрежови откази.“</p>
+</blockquote>
+<h2 id="verification">14. Тестове, доказателства и граници на проверките</h2>
+<p>Текущият <code>docs/setup.md</code> записва успешни <strong>86 backend и 30 frontend теста</strong>, backend/frontend builds и browser проверки на картата. Това са записани предходни резултати, а не нов test run от подготовката на този файл. Предишното лично ръководство споменаваше 26 frontend теста преди добавените map проверки; за сегашната версия използвам актуалния проектен запис и при нужда повтарям командите.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Какво защитавам</th>
+<th>Какво отварям като доказателство</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Пълна speeding продължителност и равенство</td>
+<td><code>tests/GpsTracking.Tests/SpeedingRuleTests.cs</code></td>
+</tr>
+<tr>
+<td>Геозони: инициализация, мнозинство и пропуснато пресичане</td>
+<td><code>GeofenceRuleTests.cs</code>, <code>GeofenceApiTests.cs</code></td>
+</tr>
+<tr>
+<td>Anchor, route boundaries, stationary history, преоценка</td>
+<td><code>MovementRuleTests.cs</code>, <code>MovementApiTests.cs</code></td>
+</tr>
+<tr>
+<td>Валидация, 204/400/404/409 и session</td>
+<td><code>GpsSampleTests.cs</code>, <code>TrackingApiTests.cs</code>, <code>SettingsApiTests.cs</code></td>
+</tr>
+<tr>
+<td>Shared state и конкурентни заявки</td>
+<td><code>TrackingConcurrencyTests.cs</code>, <code>ConcurrentTrackingApiTests.cs</code>, <code>ServiceLifetimeTests.cs</code></td>
+</tr>
+<tr>
+<td>Публикация извън lock и устойчивост на отказ</td>
+<td><code>TrackingPublicationTests.cs</code></td>
+</tr>
+<tr>
+<td>Simulator: фази, времево движение, пропуснати доставки</td>
+<td><code>RouteProgressorTests.cs</code>, <code>ScenarioProgressorTests.cs</code>, <code>ScenarioApiTests.cs</code>, <code>SimulationWorkerTests.cs</code></td>
+</tr>
+<tr>
+<td>Профили и независимо поведение</td>
+<td><code>SimulationSettingsTests.cs</code></td>
+</tr>
+<tr>
+<td>REST/live merge и lifecycle</td>
+<td><code>tracking-store.service.spec.ts</code>, <code>tracking-connection.service.spec.ts</code></td>
+</tr>
+<tr>
+<td>Форми, история и карта</td>
+<td>Component <code>.spec.ts</code> файловете; map тестовете използват локално изображение вместо публични tiles</td>
+</tr>
+</tbody>
+</table></div>
+<p>Команди за проверка преди самата защита:</p>
+<pre><code class="language-powershell">dotnet build GPS-Vehicle-Tracking-Simulator.sln --configuration Release --no-restore
+dotnet test GPS-Vehicle-Tracking-Simulator.sln --configuration Release --no-build --no-restore
+npm --prefix src/gps-tracking-web run build
+npm --prefix src/gps-tracking-web test -- --watch=false --browsers=ChromeHeadless
+</code></pre>
+<p>Предполага се успешно предходно restore/install. <code>--no-build</code> използва вече компилираното в същата конфигурация. Резултатът се отчита след реално изпълнение. За документационната промяна не е необходим нов пълен test run.</p>
+<p><strong>Непотвърдено с тези числа:</strong> измерен капацитет, продължителен soak test, fresh-machine/cross-platform инсталация и всички production откази. Project setup записът изрично посочва, че 11-минутният default сценарий не е повтарян end-to-end в последния browser pass; затова го репетирам на презентационната машина.</p>
+<h2 id="finish">15. Какво да отворя в кода и как да завърша</h2>
+<h3>Път през кода за 3–4 минути</h3>
+<ol>
+<li>Solution tree: показвам слоевете и отделните clients. Разграничавам projects от processes.</li>
+<li><code>src/GpsTracking.Api/Controllers/VehiclesController.cs</code>: кратък <code>Submit</code>, който делегира.</li>
+<li><code>src/GpsTracking.Application/Tracking/Commands/SubmitSampleHandler.cs</code>: Domain validation → store capture → publisher.</li>
+<li><code>src/GpsTracking.Infrastructure/Storage/InMemoryTrackingStore.cs</code>: <code>AppendWithSnapshot</code>, lock, rules, revision и snapshot.</li>
+<li><code>src/GpsTracking.Domain/Rules/MovementRule.cs</code>: anchor и <code>ConfirmIfReady</code>; при въпрос за speeding отварям неговото правило и тест.</li>
+<li><code>src/GpsTracking.Api/Realtime/SignalRTrackingPublisher.cs</code>: публикация извън store, <code>Clients.All</code>, timeout/лог.</li>
+<li><code>src/gps-tracking-web/src/app/core/services/tracking-store.service.ts</code>: initial/reconnect synchronization и revisions.</li>
+<li><code>src/gps-tracking-web/src/app/features/tracking/components/tracking-map/tracking-map.component.ts</code>: отделна UI отговорност, overlays, tile failure и cleanup.</li>
+</ol>
+<p>Не е необходимо да показвам всеки helper метод. За конкретен въпрос следвам реалния път от контролата до съответния handler/rule и обратно до резултата.</p>
+<h3>Финални думи</h3>
+<blockquote>
+<p>„Демонстрацията показва целия поток — от генерирана GPS точка през бизнес правило до видимо събитие. Най-важните детайли са пълното времево покритие, фиксираният anchor, границите на маршрутите и синхронизацията чрез session и revisions. Текущият обхват е удобен за локално представяне, а ограниченията му са конкретни: памет, трайност, надеждна доставка, права и мащабиране. Следващото развитие трябва да стъпи на уточнени бизнес гаранции и измервания.“</p>
+</blockquote>
+<p>След представянето спирам и трите процеса. Не разчитам историята да остане след API restart. За предаване използвам изходния проект и публичните му документи, без този личен файл.</p>
+<h2 id="sources">16. Източници и последна проверка</h2>
+<p>Локални източници за сверяване:</p>
+<ul>
+<li><a href="README.md">README — текущо стартиране и общи ограничения</a></li>
+<li><a href="docs/setup.md">Setup — конфигурация, проверки и записани резултати</a></li>
+<li><a href="docs/demo.md">Demo — стандартен сценарий</a></li>
+<li><a href="docs/architecture.md">Architecture — слоеве, поведение и структура</a></li>
+<li><a href="src/gps-tracking-web/src/app/features/tracking/pages/tracking-dashboard/tracking-dashboard.component.html">Текущата страница на dashboard</a></li>
+<li><a href="src/gps-tracking-web/src/app/features/tracking/components/tracking-map/tracking-map.component.ts">Карта и lifecycle</a></li>
+<li><a href="src/gps-tracking-web/src/app/core/constants/simulation.constants.ts">Имена на simulator полетата</a></li>
+<li><a href="src/GpsTracking.Contracts/Tracking/SimulationProfile.cs">Default simulation profiles</a></li>
+<li><a href="src/GpsTracking.Api/appsettings.json">Начални автомобили, прагове и геозони</a></li>
+</ul>
+<p>Историческият handoff може да се прочете без възстановяване на изтрит файл:</p>
+<pre><code class="language-powershell">git show '847e6a5^:GPS_TRACKING_IMPLEMENTATION_PLAN.md'
+</code></pre>
+<p>Това е източник за записаните тогава изисквания, не описание на новата Leaflet реализация. Новата карта и преместването на компонентите са сверени с текущия код.</p>
+<h3>Последен личен списък</h3>
+<ul>
+<li>Знам разликата между speed, movement, freshness и connection state.</li>
+<li>Мога да обясня всички полета в двете форми и всички бутони на картата/историите.</li>
+<li>Мога да проследя една GPS точка и една промяна на настройки през компонентите.</li>
+<li>Показвам 00/10/20/30 s за 30-second speeding прозорец.</li>
+<li>Обяснявам stop onset срещу stop confirmation и отделните route линии.</li>
+<li>Разграничавам заявените изисквания, нашите конкретизации и бъдещите предложения.</li>
+<li>Говоря за актуалната Leaflet карта и текущите <code>pages/components</code> папки.</li>
+<li>Не представям записан test count като ново изпълнение или примерен load като измерен капацитет.</li>
+<li>При въпрос за production назовавам трайност, права, bounded data и ordering, преди да предлагам още сървъри.</li>
+<li>Проверявам <code>git check-ignore -v PRIVATE-PRESENTATION-BG.md</code> преди подготвяне на commit; при ръчен архив оставям файла извън него.</li>
+</ul>
+<p class="endnote">Лични бележки за представяне. Източник: PRIVATE-PRESENTATION-BG.md. HTML е самостоятелен и не зарежда външни ресурси.</p>
+</main></div></body></html>
